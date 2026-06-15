@@ -107,6 +107,7 @@ def render_templates(config, output_dir):
 
     Special handling:
       - well-known-matrix-<name>.json.j2 → well-known/matrix/<name>
+      - Dockerfile.frappe.j2 → docker/frappe/Dockerfile
       - setup-<service>.sh.j2 → setup-<service>.sh (executable)
 
     Args:
@@ -130,6 +131,10 @@ def render_templates(config, output_dir):
             target_dir = output_path / "well-known" / "matrix"
             os.makedirs(target_dir, exist_ok=True)
             target = target_dir / well_known_name.replace(".json", "")
+        elif output_name == "Dockerfile.frappe":
+            target_dir = output_path / "docker" / "frappe"
+            os.makedirs(target_dir, exist_ok=True)
+            target = target_dir / "Dockerfile"
         else:
             target = output_path / output_name
 

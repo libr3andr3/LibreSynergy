@@ -118,7 +118,9 @@ services:
   # Frappe LMS — courses & certificates
   # ============================================================
   frappe:
-    image: frappe/frappe-lms:latest
+    build:
+      context: .
+      dockerfile: docker/frappe/Dockerfile
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
@@ -178,7 +180,7 @@ services:
   # Jitsi Meet — video conferencing
   # ============================================================
   jitsi-web:
-    image: jitsi/web:latest
+    image: jitsi/web:stable
     environment:
       JITSI_PUBLIC_URL: https://meet.{{ domain }}
       JITSI_JWT_APP_ID: libresynergy
@@ -194,7 +196,7 @@ services:
     restart: unless-stopped
 
   prosody:
-    image: jitsi/prosody:latest
+    image: jitsi/prosody:stable
     environment:
       JITSI_AUTH_TYPE: jwt
       JITSI_JWT_APP_ID: libresynergy
@@ -204,7 +206,7 @@ services:
     restart: unless-stopped
 
   jicofo:
-    image: jitsi/jicofo:latest
+    image: jitsi/jicofo:stable
     environment:
       JITSI_JWT_APP_ID: libresynergy
       JITSI_JWT_SECRET: {{ secrets.jitsi_jwt_secret }}
@@ -213,7 +215,7 @@ services:
     restart: unless-stopped
 
   jvb:
-    image: jitsi/jvb:latest
+    image: jitsi/jvb:stable
     environment:
       JITSI_JVB_ADVERTISE_IPS: {{ domain }}
     ports:

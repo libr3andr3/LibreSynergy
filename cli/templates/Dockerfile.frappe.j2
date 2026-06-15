@@ -1,0 +1,7 @@
+FROM frappe/erpnext:v15
+
+# Install Frappe LMS app
+RUN bench get-app lms https://github.com/frappe/lms && \
+    bench --site {{ domain }} install-app lms
+
+EXPOSE 8000

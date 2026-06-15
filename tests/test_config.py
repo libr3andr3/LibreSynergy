@@ -66,7 +66,7 @@ class TestTemplates:
     def test_all_templates_render(self, temp_dir, sample_config):
         from cli.config import render_templates
         count = render_templates(sample_config, str(temp_dir))
-        assert count == 14
+        assert count == 15
         assert (temp_dir / "docker-compose.yml").exists()
         assert (temp_dir / "nginx.conf").exists()
         assert (temp_dir / "homeserver.yaml").exists()

@@ -157,4 +157,23 @@ def render_templates(config, output_dir):
     if rendered == 0:
         click.echo("  ⚠ No templates found in cli/templates/")
 
+    # Copy project source files needed by Docker builds
+    _copy_project_source(output_path)
+
     return rendered
+
+
+def _copy_project_source(output_dir: Path):
+    """Copy api/, cli/, pyproject.toml to output dir for Docker builds."""
+    project_root = Path(__file__).parent.parent
+    import shutil
+
+    for item in ["api", "cli", "pyproject.toml"]:
+        src = project_root / item
+        dst = output_dir / item
+        if src.is_dir():
+            if dst.exists():
+                shutil.rmtree(dst)
+            shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        elif src.is_file():
+            shutil.copy2(src, dst)

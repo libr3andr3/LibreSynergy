@@ -402,6 +402,7 @@ def run_authentik_bootstrap(
     domain: str,
     auth_url: str = None,
     admin_password: str = None,
+    bootstrap_token: str = None,
 ):
     """Run the full Authentik bootstrap sequence.
 
@@ -409,26 +410,32 @@ def run_authentik_bootstrap(
         domain: Community domain (e.g., learn.example.com)
         auth_url: Authentik base URL (default: https://auth.{domain})
         admin_password: Bootstrap admin password
-
-    Returns:
-        dict with all generated config values.
+        bootstrap_token: Pre-created API token from AUTHENTIK_BOOTSTRAP_TOKEN
     """
     if auth_url is None:
         auth_url = f"https://auth.{domain}"
     if admin_password is None:
         admin_password = os.getenv("AUTHENTIK_BOOTSTRAP_PASSWORD", "changeme")
+    if bootstrap_token is None:
+        bootstrap_token = os.getenv("AUTHENTIK_BOOTSTRAP_TOKEN", "")
+
+    from cli.authentik_setup import wait_for_authentik, create_admin_token, AuthentikAdmin
+    from cli.authentik_setup import create_oidc_providers, create_applications, create_groups, create_property_mappings, output_config
 
     print()
     print("  ── Authentik Bootstrap ──")
     print()
 
-    # Wait for Authentik
     if not wait_for_authentik(auth_url):
         print("  ✗ Authentik did not become ready in time.")
         return {}
 
-    # Create admin token
-    api_token = create_admin_token(auth_url, admin_password)
+    if bootstrap_token:
+        api_token = bootstrap_token
+        print(f"  ✓ Using bootstrap token: {api_token[:20]}...")
+    else:
+        api_token = create_admin_token(auth_url, admin_password)
+
     admin = AuthentikAdmin(auth_url, api_token)
 
     # Create resources

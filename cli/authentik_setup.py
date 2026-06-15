@@ -94,12 +94,18 @@ def wait_for_authentik(base_url: str, timeout: int = 120):
 # ============================================================
 
 def create_admin_token(base_url: str, admin_password: str) -> str:
-    """Create a service account with API token for admin operations.
+    """Get an admin API token for Authentik operations.
 
-    Uses the initial admin password (set via AUTHENTIK_BOOTSTRAP_PASSWORD
-    env var) to authenticate, then creates a dedicated service account
-    with an API key for all further operations.
+    Checks AUTHENTIK_BOOTSTRAP_TOKEN env var first (set at container start).
+    Falls back to creating a token via API using the admin password.
     """
+    import os
+    # If bootstrap token was set at container start, use it directly
+    bootstrap_token = os.getenv("AUTHENTIK_BOOTSTRAP_TOKEN", "")
+    if bootstrap_token:
+        print(f"  ✓ Using bootstrap token: {bootstrap_token[:20]}...")
+        return bootstrap_token
+
     print("  Creating admin service account and API token...")
 
     # First, get a session token using the bootstrap admin

@@ -135,6 +135,10 @@ def render_templates(config, output_dir):
             target_dir = output_path / "docker" / "frappe"
             os.makedirs(target_dir, exist_ok=True)
             target = target_dir / "Dockerfile"
+        elif output_name == "Dockerfile.api":
+            target_dir = output_path / "docker" / "api"
+            os.makedirs(target_dir, exist_ok=True)
+            target = target_dir / "Dockerfile"
         else:
             target = output_path / output_name
 

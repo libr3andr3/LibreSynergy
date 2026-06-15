@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# Virtual environment
+.venv/
+venv/
+env/
+.eggs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+
+# Generated configs (from bootstrap)
+docker-compose.yml
+nginx.conf
+homeserver.yaml
+prosody.cfg.lua
+frappe-common-site-config.json
+element-config.json
+jitsi-config.js
+jitsi-interface-config.js
+branding.yaml
+setup-frappe.sh
+setup-jitsi.sh
+setup-matrix.sh
+well-known/
+
+# Discovery DB
+discovery.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/

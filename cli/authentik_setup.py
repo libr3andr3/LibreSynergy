@@ -419,9 +419,6 @@ def run_authentik_bootstrap(
     if bootstrap_token is None:
         bootstrap_token = os.getenv("AUTHENTIK_BOOTSTRAP_TOKEN", "")
 
-    from cli.authentik_setup import wait_for_authentik, create_admin_token, AuthentikAdmin
-    from cli.authentik_setup import create_oidc_providers, create_applications, create_groups, create_property_mappings, output_config
-
     print()
     print("  ── Authentik Bootstrap ──")
     print()

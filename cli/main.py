@@ -45,7 +45,12 @@ def bootstrap(domain, output, non_interactive):
     click.echo(f"    1. cd {output}")
     click.echo("    2. docker compose up -d")
     click.echo("    3. Wait ~60s for Authentik to start")
-    click.echo(f"    4. libresynergy authentik-setup --domain {config.get('domain', 'your-domain.com')}")
+    click.echo("    4. Configure SSO:")
+    click.echo(f"       PYTHONPATH=.. ../.venv/bin/python3 -m cli.main authentik-setup \\")
+    click.echo(f"         --domain {config.get('domain', 'your-domain.com')} \\")
+    click.echo("         --admin-password <your-password>")
+    click.echo("")
+    click.echo("  See README.md for the full quick start guide.")
     click.echo("")
 
 

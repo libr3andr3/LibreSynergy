@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: libresynergy
+  labels:
+    app.kubernetes.io/part-of: libresynergy
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: libresynergy-secrets
+  namespace: libresynergy
+type: Opaque
+stringData:
+  postgres-password: "PLACEHOLDER_GENERATED_BY_BOOTSTRAP"
+  redis-password: "PLACEHOLDER"
+  authentik-secret: "PLACEHOLDER"
+  federation-secret: "PLACEHOLDER"
+  api-admin-key: "PLACEHOLDER"
+  jitsi-jwt-secret: "PLACEHOLDER"
+  matrix-macaroon-secret: "PLACEHOLDER"
+  matrix-registration-secret: "PLACEHOLDER"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: libresynergy-config
+  namespace: libresynergy
+data:
+  domain: "learn.example.com"
+  community-name: "My Learning Community"
+  admin-email: "admin@example.com"

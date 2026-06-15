@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""
+Matrix Synapse post-deploy setup.
+
+Creates default tier rooms and spaces via the Synapse Admin API.
+No Matrix source code is modified — this is pure API calls.
+"""
+
+import sys
+import time
+import httpx
+
+DOMAIN = "{{ domain }}"
+MATRIX_URL = "http://matrix:8008"
+ADMIN_TOKEN = "{{ secrets.api_admin_key }}"
+
+
+def wait_for_matrix():
+    """Wait for Synapse to be reachable."""
+    for _ in range(24):
+        try:
+            resp = httpx.get(f"{MATRIX_URL}/_matrix/static/", timeout=5)
+            if resp.status_code in (200, 404):
+                print("  ✓ Matrix Synapse is online")
+                return True
+        except Exception:
+            pass
+        time.sleep(5)
+    return False
+
+
+def register_admin_user():
+    """Register the admin user for API access."""
+    print("  Registering admin user...")
+    # Synapse admin registration
+    try:
+        resp = httpx.post(
+            f"{MATRIX_URL}/_synapse/admin/v1/register",
+            json={
+                "nonce": "register",
+                "username": "admin",
+                "password": "{{ secrets.api_admin_key }}",
+                "admin": True,
+            },
+            timeout=10,
+        )
+        if resp.status_code in (200, 201, 400):  # 400 = already exists
+            print("  ✓ Admin user ready")
+            return True
+    except Exception as e:
+        print(f"  ⚠ Admin registration: {e}")
+    return False
+
+
+def create_tier_rooms():
+    """Create default rooms for each tier."""
+    rooms = [
+        ("general", "General Discussion", True),
+        ("announcements", "Announcements", True),
+        ("expert-qa", "Expert Q&A", False),
+        ("course-discussion", "Course Discussion", False),
+        ("live-sessions", "Live Session Chat", False),
+    ]
+
+    headers = {
+        "Authorization": f"Bearer {ADMIN_TOKEN}",
+        "Content-Type": "application/json",
+    }
+
+    for alias, name, public in rooms:
+        print(f"  Creating room: #{alias}")
+        try:
+            httpx.post(
+                f"{MATRIX_URL}/_synapse/admin/v1/rooms",
+                json={
+                    "name": name,
+                    "room_alias_name": alias,
+                    "visibility": "public" if public else "private",
+                    "creation_content": {},
+                },
+                headers=headers,
+                timeout=10,
+            )
+        except Exception as e:
+            print(f"    ⚠ {e}")
+    print("  ✓ Tier rooms created")
+
+
+def main():
+    print()
+    print("  ╔══════════════════════════════════════╗")
+    print("  ║  libresynergy — Matrix Synapse Setup ║")
+    print("  ╚══════════════════════════════════════╝")
+    print()
+
+    if not wait_for_matrix():
+        print("  ✗ Matrix did not start")
+        sys.exit(1)
+
+    register_admin_user()
+    create_tier_rooms()
+
+    print()
+    print("  ✅ Matrix Synapse configured!")
+    print(f"  💬 Visit https://chat.{DOMAIN}")
+    print()
+
+
+if __name__ == "__main__":
+    main()

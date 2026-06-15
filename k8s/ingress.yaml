@@ -1,0 +1,89 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: libresynergy-ingress
+  namespace: libresynergy
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - "auth.REPLACE_DOMAIN"
+        - "learn.REPLACE_DOMAIN"
+        - "chat.REPLACE_DOMAIN"
+        - "meet.REPLACE_DOMAIN"
+        - "api.REPLACE_DOMAIN"
+      secretName: libresynergy-tls
+  rules:
+    # Authentik SSO
+    - host: "auth.REPLACE_DOMAIN"
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: authentik
+                port:
+                  number: 9000
+    # Frappe LMS
+    - host: "learn.REPLACE_DOMAIN"
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: frappe
+                port:
+                  number: 8000
+    # Matrix + Element
+    - host: "chat.REPLACE_DOMAIN"
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/_matrix"
+            backend:
+              service:
+                name: matrix
+                port:
+                  number: 8008
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: element
+                port:
+                  number: 80
+    # Jitsi Meet
+    - host: "meet.REPLACE_DOMAIN"
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/xmpp-websocket"
+            backend:
+              service:
+                name: prosody
+                port:
+                  number: 5280
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: jitsi-web
+                port:
+                  number: 80
+    # libresynergy API
+    - host: "api.REPLACE_DOMAIN"
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: libresynergy-api
+                port:
+                  number: 5000

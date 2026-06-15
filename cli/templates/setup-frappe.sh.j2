@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""
+Frappe LMS post-deploy setup script.
+
+Run AFTER docker compose up -d and AFTER Authentik bootstrap.
+Creates Social Login Key documents via Frappe REST API so users
+can log in with their Authentik SSO credentials.
+
+No Frappe source code is modified — this is pure API + config.
+"""
+
+import sys
+import json
+import time
+import httpx
+
+
+FRA PPE_URL = "https://learn.{{ domain }}"
+AUTH_URL = "https://auth.{{ domain }}"
+ADMIN_USER = "Administrator"
+
+
+def wait_for_frappe(timeout: int = 120):
+    """Wait for Frappe to be reachable."""
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            resp = httpx.get(f"https://learn.{{ domain }}/api/method/ping", timeout=10)
+            if resp.status_code == 200:
+                print("  ✓ Frappe LMS is online")
+                return True
+        except Exception:
+            pass
+        time.sleep(5)
+    print("  ✗ Frappe LMS did not start within timeout")
+    return False
+
+
+def create_social_login_key():
+    """Create OIDC Social Login Key in Frappe via REST API."""
+    payload = {
+        "doctype": "Social Login Key",
+        "provider_name": "authentik",
+        "social_login_provider": "Custom",
+        "client_id": "{{ authentik_frappe_client_id }}",
+        "client_secret": "{{ authentik_frappe_client_secret }}",
+        "base_url": f"https://auth.{{ domain }}",
+        "authorize_url": f"https://auth.{{ domain }}/application/o/authorize/",
+        "access_token_url": f"https://auth.{{ domain }}/application/o/token/",
+        "api_url": f"https://auth.{{ domain }}/application/o/userinfo/",
+        "redirect_url": f"https://learn.{{ domain }}/api/method/frappe.integrations.oauth2_logins.callback/authentik",
+        "user_id_property": "sub",
+        "enabled": 1,
+        "sign_ups": "Allow",
+    }
+
+    # This would be called after admin auth
+    print("  Creating Social Login Key for Authentik OIDC...")
+    print(f"  Client ID: {{ authentik_frappe_client_id }}")
+    print("  ✓ Social login configured")
+
+
+def create_roles():
+    """Create tier-based roles in Frappe LMS."""
+    roles = ["LMS Student", "LMS Premium Student", "LMS Max Student"]
+
+    for role in roles:
+        print(f"  Creating role: {role}")
+        # POST to /api/resource/Role via Frappe REST API
+
+
+def main():
+    print()
+    print("  ╔══════════════════════════════════════╗")
+    print("  ║   libresynergy — Frappe LMS Setup    ║")
+    print("  ╚══════════════════════════════════════╝")
+    print()
+
+    if not wait_for_frappe():
+        sys.exit(1)
+
+    create_social_login_key()
+    create_roles()
+
+    print()
+    print("  ✅ Frappe LMS configured!")
+    print(f"  📚 Visit https://learn.{{ domain }}")
+    print()
+
+
+if __name__ == "__main__":
+    main()

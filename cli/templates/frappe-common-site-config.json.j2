@@ -1,0 +1,53 @@
+{
+    "db_host": "postgres",
+    "db_port": 5432,
+    "db_name": "{{ secrets.postgres_password }}",
+    "db_password": "{{ secrets.postgres_password }}",
+    "db_type": "postgres",
+    "allow_tests": false,
+    "server_script_enabled": true,
+    "developer_mode": 0,
+    "maintenance_mode": 0,
+    "pause_scheduler": 0,
+    "admin_password": "{{ secrets.authentik_secret }}",
+    "encryption_key": "{{ secrets.federation_secret }}",
+    "host_name": "https://learn.{{ domain }}",
+    "site_name": "{{ community_name }}",
+    "socketio_port": 9000,
+    "redis_cache": "redis://:{{ secrets.redis_password }}@redis:6379/1",
+    "redis_queue": "redis://:{{ secrets.redis_password }}@redis:6379/2",
+    "redis_socketio": "redis://:{{ secrets.redis_password }}@redis:6379/3",
+    "monitor": 0,
+    "oauth2_providers": {
+        "authentik": {
+            "client_id": "{{ authentik_frappe_client_id }}",
+            "client_secret": "{{ authentik_frappe_client_secret }}",
+            "authorize_url": "https://auth.{{ domain }}/application/o/authorize/",
+            "token_url": "https://auth.{{ domain }}/application/o/token/",
+            "userinfo_url": "https://auth.{{ domain }}/application/o/userinfo/",
+            "redirect_uri": "https://learn.{{ domain }}/api/method/frappe.integrations.oauth2_logins.callback/authentik",
+            "scopes": "openid profile email",
+            "user_id_field": "sub",
+            "name_field": "name",
+            "email_field": "email",
+            "role_mapping": {
+                "free": "LMS Student",
+                "premium": "LMS Premium Student",
+                "max": "LMS Max Student"
+            }
+        }
+    },
+    "social_login_providers": {
+        "authentik": {
+            "provider_name": "SSO",
+            "client_id": "{{ authentik_frappe_client_id }}",
+            "client_secret": "{{ authentik_frappe_client_secret }}",
+            "base_url": "https://auth.{{ domain }}"
+        }
+    },
+    "lms_settings": {
+        "allow_certificate_download": true,
+        "certificate_requires_payment": true,
+        "default_course_access": "enroll"
+    }
+}

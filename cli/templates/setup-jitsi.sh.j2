@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""
+Jitsi Meet post-deploy verification.
+
+Jitsi is configured entirely via environment variables and config files
+(prosody.cfg.lua, config.js, interface_config.js) — no source changes.
+This script just verifies Jitsi is healthy.
+"""
+
+import sys
+import time
+import httpx
+
+DOMAIN = "{{ domain }}"
+JITSI_URL = "https://meet.{{ domain }}"
+
+
+def wait_for_jitsi():
+    """Wait for Jitsi Meet web to be reachable."""
+    for _ in range(24):
+        try:
+            resp = httpx.get(JITSI_URL, timeout=5)
+            if resp.status_code in (200, 302):
+                print("  ✓ Jitsi Meet is online")
+                return True
+        except Exception:
+            pass
+        time.sleep(5)
+    return False
+
+
+def main():
+    print()
+    print("  ╔══════════════════════════════════════╗")
+    print("  ║   libresynergy — Jitsi Meet Setup    ║")
+    print("  ╚══════════════════════════════════════╝")
+    print()
+
+    if not wait_for_jitsi():
+        print("  ✗ Jitsi Meet did not start")
+        sys.exit(1)
+
+    print()
+    print("  ✅ Jitsi Meet is running!")
+    print(f"  📹 Visit https://meet.{DOMAIN}")
+    print()
+    print("  JWT authentication is configured via prosody.cfg.lua")
+    print("  Users authenticate through Authentik SSO")
+    print()
+
+
+if __name__ == "__main__":
+    main()

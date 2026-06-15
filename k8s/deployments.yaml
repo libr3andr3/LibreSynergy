@@ -1,0 +1,360 @@
+# PostgreSQL — StatefulSet for persistent database
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: libresynergy
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - name: POSTGRES_USER
+              value: libresynergy
+            - name: POSTGRES_DB
+              value: libresynergy
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: libresynergy-secrets
+                  key: postgres-password
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: libresynergy
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+---
+# Redis — simple Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: libresynergy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command: ["redis-server", "--requirepass", "$(REDIS_PASSWORD)"]
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: libresynergy-secrets
+                  key: redis-password
+          ports:
+            - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: libresynergy
+spec:
+  selector:
+    app: redis
+  ports:
+    - port: 6379
+---
+# libresynergy API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: libresynergy-api
+  namespace: libresynergy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: libresynergy-api
+  template:
+    metadata:
+      labels:
+        app: libresynergy-api
+    spec:
+      containers:
+        - name: api
+          image: libresynergy-api:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://libresynergy:$(POSTGRES_PASSWORD)@postgres:5432/libresynergy"
+            - name: REDIS_URL
+              value: "redis://:$(REDIS_PASSWORD)@redis:6379"
+            - name: AUTHENTIK_URL
+              value: "https://auth.REPLACE_DOMAIN"
+            - name: FEDERATION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: libresynergy-secrets
+                  key: federation-secret
+            - name: ADMIN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: libresynergy-secrets
+                  key: api-admin-key
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: libresynergy-api
+  namespace: libresynergy
+spec:
+  selector:
+    app: libresynergy-api
+  ports:
+    - port: 5000
+---
+# Authentik
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authentik
+  namespace: libresynergy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authentik
+  template:
+    metadata:
+      labels:
+        app: authentik
+    spec:
+      containers:
+        - name: server
+          image: ghcr.io/goauthentik/server:latest
+          command: ["server"]
+          ports:
+            - containerPort: 9000
+          env:
+            - name: AUTHENTIK_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: libresynergy-secrets
+                  key: authentik-secret
+            - name: AUTHENTIK_POSTGRESQL__HOST
+              value: postgres
+            - name: AUTHENTIK_POSTGRESQL__USER
+              value: libresynergy
+            - name: AUTHENTIK_POSTGRESQL__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: libresynergy-secrets
+                  key: postgres-password
+            - name: AUTHENTIK_POSTGRESQL__NAME
+              value: libresynergy
+            - name: AUTHENTIK_REDIS__HOST
+              value: redis
+            - name: AUTHENTIK_REDIS__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: libresynergy-secrets
+                  key: redis-password
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+        - name: worker
+          image: ghcr.io/goauthentik/server:latest
+          command: ["worker"]
+          env:
+            - name: AUTHENTIK_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: libresynergy-secrets
+                  key: authentik-secret
+            - name: AUTHENTIK_POSTGRESQL__HOST
+              value: postgres
+            - name: AUTHENTIK_POSTGRESQL__USER
+              value: libresynergy
+            - name: AUTHENTIK_POSTGRESQL__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: libresynergy-secrets
+                  key: postgres-password
+            - name: AUTHENTIK_POSTGRESQL__NAME
+              value: libresynergy
+            - name: AUTHENTIK_REDIS__HOST
+              value: redis
+            - name: AUTHENTIK_REDIS__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: libresynergy-secrets
+                  key: redis-password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authentik
+  namespace: libresynergy
+spec:
+  selector:
+    app: authentik
+  ports:
+    - port: 9000
+---
+# Matrix Synapse
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matrix
+  namespace: libresynergy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: matrix
+  template:
+    metadata:
+      labels:
+        app: matrix
+    spec:
+      containers:
+        - name: synapse
+          image: matrixdotorg/synapse:latest
+          ports:
+            - containerPort: 8008
+          volumeMounts:
+            - name: config
+              mountPath: /data/homeserver.yaml
+              subPath: homeserver.yaml
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: config
+          configMap:
+            name: matrix-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: matrix-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: matrix
+  namespace: libresynergy
+spec:
+  selector:
+    app: matrix
+  ports:
+    - port: 8008
+---
+# Jitsi Meet (web + prosody + jicofo + jvb)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jitsi-web
+  namespace: libresynergy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jitsi-web
+  template:
+    metadata:
+      labels:
+        app: jitsi-web
+    spec:
+      containers:
+        - name: web
+          image: jitsi/web:latest
+          ports:
+            - containerPort: 80
+          env:
+            - name: JITSI_JWT_APP_ID
+              value: libresynergy
+            - name: JITSI_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: libresynergy-secrets
+                  key: jitsi-jwt-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jitsi-web
+  namespace: libresynergy
+spec:
+  selector:
+    app: jitsi-web
+  ports:
+    - port: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prosody
+  namespace: libresynergy
+spec:
+  selector:
+    app: prosody
+  ports:
+    - port: 5280
+---
+# PersistentVolumeClaims
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: matrix-data
+  namespace: libresynergy
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi

@@ -1,0 +1,42 @@
+/* ============================================================================
+   LibreSynergy — BTCPay Server theme · sovereignty palette (violet → gold)
+   Upload under: Store → Settings → Branding → Custom CSS → Choose File.
+   Also set the Brand Color field to  #7c6cff.
+   Targets BTCPay's real --btcpay-* variables. Brand accents apply in both
+   light and dark; the deeper ink/surface match applies under a dark scheme
+   (which is where checkout renders for most of your visitors).
+   ============================================================================ */
+
+/* ---- brand accent (both light and dark) ---------------------------------- */
+:root{
+  --btcpay-brand-primary:#7c6cff;
+  --btcpay-brand-secondary:#ffc15e;
+  --btcpay-brand-tertiary:#6a4cff;
+  --btcpay-primary:#7c6cff;
+  --btcpay-primary-rgb:124,108,255;
+  --btcpay-primary-accent:#6a4cff;
+  --btcpay-primary-accent-rgb:106,76,255;
+  --btcpay-primary-text:#ffffff;
+  --btcpay-primary-text-active:#ffffff;
+  --btcpay-body-link:#7c6cff;
+  --btcpay-body-link-rgb:124,108,255;
+  --btcpay-body-link-accent:#ffc15e;
+}
+
+/* ---- dark surfaces to match the rest of the platform --------------------- */
+@media (prefers-color-scheme: dark){
+  :root{
+    --btcpay-body-bg-rgb:11,11,18;        /* #0b0b12 — ink */
+    --btcpay-neutral-50:#15151f;          /* card / tile ground */
+    --btcpay-bg-dark:#15151f;
+    --btcpay-bg-tile:#15151f;
+    --btcpay-brand-dark:#15151f;
+    --btcpay-body-border-light:#262633;
+    --btcpay-body-border-medium:#33334a;
+  }
+}
+
+/* ---- checkout polish: rounded, violet pay button ------------------------- */
+:root{ --btcpay-border-radius:.5rem; --btcpay-border-radius-l:.75rem; }
+.btn-primary{ --btcpay-btn-bg:#7c6cff; --btcpay-btn-hover-bg:#6a4cff; }
+#PaymentDetails, .payment-box, .invoice{ border-radius:var(--btcpay-border-radius-l); }

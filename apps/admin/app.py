@@ -8,19 +8,9 @@ service health, launch checklist, quick links.
 
 Pure stdlib, loopback-only; Caddy fronts https://admin.<domain> behind
 Authentik forward-auth. The app additionally requires the admin group header.
-
-UI is localized (en/es/fr) via the shared /i18n catalog: language is resolved
-per request (?lang= > ls_lang cookie > Accept-Language > LS_DEFAULT_LANG > en).
 """
-import json, os, re, sys, threading, time, urllib.request, urllib.error, urllib.parse, html, uuid
+import json, os, re, threading, time, urllib.request, urllib.error, html, uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-
-# Shared translation helper — mounted at /i18n, or reachable via the repo mount.
-for _p in ("/i18n", "/ls/apps/i18n"):
-    if os.path.isdir(_p) and _p not in sys.path:
-        sys.path.insert(0, _p)
-        break
-import i18n
 
 LISTEN_HOST = os.environ.get("LISTEN_HOST", "127.0.0.1")
 LISTEN_PORT = int(os.environ.get("LISTEN_PORT", "9110"))
@@ -110,35 +100,31 @@ def matrix_announce(text):
     except urllib.error.HTTPError as e:
         return False, f"matrix {e.code}: {e.read().decode()[:200]}"
 
-SERVICES = [  # stable id (i18n key svc.<id> + launch lookups), port, health path
-    ("sso", 8300, "/-/health/live/"),
-    ("matrix", 8008, "/health"),
-    ("chatweb", 8114, "/"),
-    ("lms", 8100, "/"),
-    ("jitsi", 8200, "/"),
-    ("bridge", 9092, "/healthz"),
-    ("owncast", 8600, "/"),
-    ("btcpay", 8500, "/"),
-    ("events", 9102, "/api/events"),
+import urllib.parse
+
+SERVICES = [  # label, port, path
+    ("SSO (Authentik)", 8300, "/-/health/live/"),
+    ("Matrix (Synapse)", 8008, "/health"),
+    ("Chat web", 8114, "/"),
+    ("Classroom (LMS)", 8100, "/"),
+    ("Webinars (Jitsi)", 8200, "/"),
+    ("Payments bridge", 9092, "/healthz"),
+    ("Livestream (OwnCast)", 8600, "/"),
+    ("BTCPay", 8500, "/"),
+    ("Events API", 9102, "/api/events"),
 ]
 
 # ---------- page --------------------------------------------------------------
-# Plain template (not an f-string) so CSS/JS braces stay literal; __TOKENS__ are
-# substituted in render_page() with per-request translations + brand values.
-PAGE = """<!doctype html><html lang="__LANG__"><head><meta charset="utf-8">
+PAGE = """<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>__T_title__</title>
+<title>__BRAND__ — admin</title>
 <link rel="icon" href="/brand-favicon" type="image/x-icon">
-<link rel="stylesheet" href="https://yaya.sh/brand/system.css">
 <style>
-:root{--brand:__CBRAND__;--gold:__CACCENT__;--ink:var(--ls-ink);--card:var(--ls-surface);--mut:var(--ls-muted);--ok:var(--ls-ok);--bad:var(--ls-danger)}
+:root{--brand:__CBRAND__;--gold:__CACCENT__;--ink:#0d0d15;--card:#15151f;--mut:#8b8b9e;--ok:#3ecf8e;--bad:#ff6b6b}
 *{box-sizing:border-box;margin:0}body{background:var(--ink);color:#ececf4;font:15px/1.5 system-ui,sans-serif;padding:24px;max-width:1100px;margin:0 auto}
 h1{font-size:22px;margin-bottom:2px}h1 b{background:linear-gradient(135deg,var(--brand),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
 h2{font-size:15px;margin:0 0 12px;color:var(--gold)}
 .sub{color:var(--mut);margin-bottom:24px;font-size:13px}
-.ls-langsw{float:right}
-.ls-lang{display:inline-block;padding:2px 7px;margin-left:4px;border-radius:6px;background:#0d0d15;color:var(--mut);font-size:12px}
-.ls-lang.cur{background:var(--brand);color:#0d0d15;font-weight:700}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
 .card{background:var(--card);border:1px solid #23233247;border-radius:14px;padding:18px}
 label{display:block;font-size:12px;color:var(--mut);margin:10px 0 3px}
@@ -156,58 +142,58 @@ a{color:var(--gold);text-decoration:none}
 #toast{position:fixed;bottom:20px;right:20px;background:var(--brand);color:#fff;padding:10px 18px;border-radius:10px;display:none}
 .check{font-size:14px;padding:3px 0}
 </style></head><body>
-<h1><b>__BRAND__</b> __T_admin__</h1>
-<div class="sub">__SWITCHER__ __TAGLINE__ · __T_controlpanel__ · __T_signedin__ <span id="who">…</span></div>
+<h1><b>__BRAND__</b> admin</h1>
+<div class="sub">__TAGLINE__ · libresynergy control panel · signed in as <span id="who">…</span></div>
 <div class="grid">
 
-<div class="card"><h2>__T_branding__</h2>
-<label>__T_communityname__</label><input type="text" id="b_name">
-<label>__T_tagline__</label><input type="text" id="b_tag">
-<label>__T_poweredby__</label><input type="text" id="b_pow">
+<div class="card"><h2>Branding</h2>
+<label>Community name</label><input type="text" id="b_name">
+<label>Tagline</label><input type="text" id="b_tag">
+<label>Powered-by footer (empty to hide)</label><input type="text" id="b_pow">
 <div class="row" style="margin-top:10px">
-  <span><label>__T_cbrand__</label><input type="color" id="b_brand"></span>
-  <span><label>__T_caccent__</label><input type="color" id="b_accent"></span>
-  <span><label>__T_cink__</label><input type="color" id="b_ink"></span>
+  <span><label>Brand</label><input type="color" id="b_brand"></span>
+  <span><label>Accent</label><input type="color" id="b_accent"></span>
+  <span><label>Ink</label><input type="color" id="b_ink"></span>
 </div>
-<button onclick="saveBrand()">__T_saveapply__</button>
-<div class="note">__T_brandingnote__</div></div>
+<button onclick="saveBrand()">Save + apply everywhere</button>
+<div class="note">Colors/name land instantly on the landing, app shell and checkout;
+Authentik / classroom / webinar rebrand runs within a minute.</div></div>
 
-<div class="card"><h2>__T_sponsors__</h2>
+<div class="card"><h2>Sponsors</h2>
 <div id="sponsors"></div>
-<label>__T_name__</label><input type="text" id="s_name" placeholder="Acme Corp">
-<label>__T_link__</label><input type="text" id="s_url" placeholder="https://…">
-<label>__T_logourl__</label><input type="text" id="s_logo" placeholder="/brand/acme.svg">
-<button onclick="addSponsor()">__T_addsponsor__</button>
-<div class="note">__T_sponsorsnote__</div></div>
+<label>Name</label><input type="text" id="s_name" placeholder="Acme Corp">
+<label>Link</label><input type="text" id="s_url" placeholder="https://…">
+<label>Logo URL (optional, shown instead of name)</label><input type="text" id="s_logo" placeholder="/brand/acme.svg">
+<button onclick="addSponsor()">Add sponsor</button>
+<div class="note">Shown in the sponsors strip on the landing page, in order added.</div></div>
 
-<div class="card"><h2>__T_messaging__</h2>
-<label>__T_bannerlabel__</label><input type="text" id="m_banner">
-<label>__T_bannerlink__</label><input type="text" id="m_burl">
-<button onclick="saveBanner()">__T_setbanner__</button> <button class="ghost" onclick="clearBanner()">__T_clear__</button>
-<label style="margin-top:16px">__T_announcelabel__</label>
-<textarea id="m_ann" rows="3" placeholder="__T_announceph__"></textarea>
-<button onclick="announce()">__T_sendgeneral__</button></div>
+<div class="card"><h2>Messaging</h2>
+<label>Site banner (shows on landing; empty = hidden)</label><input type="text" id="m_banner">
+<label>Banner link (optional)</label><input type="text" id="m_burl">
+<button onclick="saveBanner()">Set banner</button> <button class="ghost" onclick="clearBanner()">Clear</button>
+<label style="margin-top:16px">Announcement → community chat</label>
+<textarea id="m_ann" rows="3" placeholder="We're live tonight at 8pm…"></textarea>
+<button onclick="announce()">Send to #general</button></div>
 
-<div class="card"><h2>__T_servicehealth__</h2><div id="health">__T_checking__</div>
-<h2 style="margin-top:16px">__T_launchchecklist__</h2><div id="launch"></div></div>
+<div class="card"><h2>Service health</h2><div id="health">checking…</div>
+<h2 style="margin-top:16px">Launch checklist</h2><div id="launch"></div></div>
 
-<div class="card"><h2>__T_quicklinks__</h2><div class="links">
-<a href="https://auth.__DOMAIN__/if/admin/" target="_blank">__T_link_authentik__</a>
-<a href="https://live.__DOMAIN__/admin" target="_blank">__T_link_owncast__</a>
-<a href="https://btcpay.__DOMAIN__" target="_blank">__T_link_btcpay__</a>
-<a href="https://learn.__DOMAIN__" target="_blank">__T_link_classroom__</a>
-<a href="https://premium.__DOMAIN__" target="_blank">__T_link_upgrade__</a>
-<a href="https://__DOMAIN__" target="_blank">__T_link_landing__</a>
-<a href="https://auth.__DOMAIN__/if/flow/community-signup/" target="_blank">__T_link_signup__</a>
+<div class="card"><h2>Quick links</h2><div class="links">
+<a href="https://auth.__DOMAIN__/if/admin/" target="_blank">Authentik admin</a>
+<a href="https://live.__DOMAIN__/admin" target="_blank">OwnCast admin</a>
+<a href="https://btcpay.__DOMAIN__" target="_blank">BTCPay</a>
+<a href="https://learn.__DOMAIN__" target="_blank">Classroom</a>
+<a href="https://premium.__DOMAIN__" target="_blank">Upgrade page</a>
+<a href="https://__DOMAIN__" target="_blank">Landing</a>
+<a href="https://auth.__DOMAIN__/if/flow/community-signup/" target="_blank">Signup flow</a>
 </div></div>
 
 </div>
 <div id="toast"></div>
 <script>
-const T=__JS_T__;
 const $=id=>document.getElementById(id);
 function toast(m){const t=$("toast");t.textContent=m;t.style.display="block";setTimeout(()=>t.style.display="none",2600)}
-async function api(m,p,b){const r=await fetch(p,{method:m,headers:{"Content-Type":"application/json"},body:b?JSON.stringify(b):undefined});if(!r.ok){toast(T.error+await r.text());throw 0}return r.json()}
+async function api(m,p,b){const r=await fetch(p,{method:m,headers:{"Content-Type":"application/json"},body:b?JSON.stringify(b):undefined});if(!r.ok){toast("error: "+await r.text());throw 0}return r.json()}
 async function load(){
   const s=await api("GET","/api/state");
   $("who").textContent=s.user||"?";
@@ -220,97 +206,25 @@ async function load(){
   $("launch").innerHTML=s.launch.map(c=>`<div class="check">${c[1]?"✅":"⬜"} ${c[0]}</div>`).join("");
 }
 function renderSponsors(list){
-  $("sponsors").innerHTML=list.map((s,i)=>`<div class="spon"><span><a href="${s.url}" target="_blank">${s.name}</a></span><button class="ghost" style="margin:0;padding:3px 10px" onclick="delSponsor(${i})">${T.remove}</button></div>`).join("")||`<div class="note">${T.noneYet}</div>`;
+  $("sponsors").innerHTML=list.map((s,i)=>`<div class="spon"><span><a href="${s.url}" target="_blank">${s.name}</a></span><button class="ghost" style="margin:0;padding:3px 10px" onclick="delSponsor(${i})">remove</button></div>`).join("")||'<div class="note">none yet</div>';
 }
-async function saveBrand(){await api("POST","/api/branding",{LS_BRAND_NAME:$("b_name").value,LS_BRAND_TAGLINE:$("b_tag").value,LS_POWERED_BY:$("b_pow").value,LS_COLOR_BRAND:$("b_brand").value,LS_COLOR_ACCENT:$("b_accent").value,LS_COLOR_INK:$("b_ink").value});toast(T.brandingSaved)}
-async function addSponsor(){const r=await api("POST","/api/sponsors",{name:$("s_name").value,url:$("s_url").value,logo:$("s_logo").value});renderSponsors(r.sponsors);$("s_name").value=$("s_url").value=$("s_logo").value="";toast(T.sponsorAdded)}
-async function delSponsor(i){const r=await api("DELETE","/api/sponsors?i="+i);renderSponsors(r.sponsors);toast(T.removed)}
-async function saveBanner(){await api("POST","/api/banner",{text:$("m_banner").value,url:$("m_burl").value});toast(T.bannerSet)}
-async function clearBanner(){await api("POST","/api/banner",{text:"",url:""});$("m_banner").value="";toast(T.bannerCleared)}
-async function announce(){const r=await api("POST","/api/announce",{text:$("m_ann").value});$("m_ann").value="";toast(T.announced+r.id)}
+async function saveBrand(){await api("POST","/api/branding",{LS_BRAND_NAME:$("b_name").value,LS_BRAND_TAGLINE:$("b_tag").value,LS_POWERED_BY:$("b_pow").value,LS_COLOR_BRAND:$("b_brand").value,LS_COLOR_ACCENT:$("b_accent").value,LS_COLOR_INK:$("b_ink").value});toast("branding saved — full re-apply queued")}
+async function addSponsor(){const r=await api("POST","/api/sponsors",{name:$("s_name").value,url:$("s_url").value,logo:$("s_logo").value});renderSponsors(r.sponsors);$("s_name").value=$("s_url").value=$("s_logo").value="";toast("sponsor added")}
+async function delSponsor(i){const r=await api("DELETE","/api/sponsors?i="+i);renderSponsors(r.sponsors);toast("removed")}
+async function saveBanner(){await api("POST","/api/banner",{text:$("m_banner").value,url:$("m_burl").value});toast("banner set")}
+async function clearBanner(){await api("POST","/api/banner",{text:"",url:""});$("m_banner").value="";toast("banner cleared")}
+async function announce(){const r=await api("POST","/api/announce",{text:$("m_ann").value});$("m_ann").value="";toast("announced: "+r.id)}
 load();setInterval(load,30000);
 </script></body></html>"""
 
-
-def render_page(lang, v):
-    """Substitute translations + brand values into the page template."""
-    brand = html.escape(v.get("LS_BRAND_NAME", "LibreSynergy"))
-    tagline = html.escape(v.get("LS_BRAND_TAGLINE", ""))
-    T = i18n.t
-    js_t = json.dumps({
-        "error": T(lang, "common.error"),
-        "brandingSaved": T(lang, "admin.toast_branding"),
-        "sponsorAdded": T(lang, "admin.toast_sponsor_added"),
-        "removed": T(lang, "admin.toast_removed"),
-        "bannerSet": T(lang, "admin.toast_banner_set"),
-        "bannerCleared": T(lang, "admin.toast_banner_cleared"),
-        "announced": T(lang, "admin.toast_announced"),
-        "noneYet": T(lang, "common.none_yet"),
-        "remove": T(lang, "common.remove"),
-    }, ensure_ascii=False)
-    reps = {
-        "__LANG__": lang,
-        "__BRAND__": brand,
-        "__TAGLINE__": tagline,
-        "__DOMAIN__": v.get("LS_BASE_DOMAIN", ""),
-        "__CBRAND__": v.get("LS_COLOR_BRAND", "#7c6cff"),
-        "__CACCENT__": v.get("LS_COLOR_ACCENT", "#ffc15e"),
-        "__SWITCHER__": i18n.switcher_html(lang, "/"),
-        "__JS_T__": js_t,
-        "__T_title__": T(lang, "admin.page_title", brand=brand),
-        "__T_admin__": T(lang, "admin.h1_suffix"),
-        "__T_controlpanel__": T(lang, "admin.control_panel"),
-        "__T_signedin__": T(lang, "admin.signed_in_as"),
-        "__T_branding__": T(lang, "admin.branding"),
-        "__T_communityname__": T(lang, "admin.community_name"),
-        "__T_tagline__": T(lang, "admin.tagline"),
-        "__T_poweredby__": T(lang, "admin.powered_by"),
-        "__T_cbrand__": T(lang, "admin.color_brand"),
-        "__T_caccent__": T(lang, "admin.color_accent"),
-        "__T_cink__": T(lang, "admin.color_ink"),
-        "__T_saveapply__": T(lang, "admin.save_apply"),
-        "__T_brandingnote__": T(lang, "admin.branding_note"),
-        "__T_sponsors__": T(lang, "admin.sponsors"),
-        "__T_name__": T(lang, "common.name"),
-        "__T_link__": T(lang, "common.link"),
-        "__T_logourl__": T(lang, "admin.logo_url"),
-        "__T_addsponsor__": T(lang, "admin.add_sponsor"),
-        "__T_sponsorsnote__": T(lang, "admin.sponsors_note"),
-        "__T_messaging__": T(lang, "admin.messaging"),
-        "__T_bannerlabel__": T(lang, "admin.banner_label"),
-        "__T_bannerlink__": T(lang, "admin.banner_link"),
-        "__T_setbanner__": T(lang, "admin.set_banner"),
-        "__T_clear__": T(lang, "common.clear"),
-        "__T_announcelabel__": T(lang, "admin.announce_label"),
-        "__T_announceph__": T(lang, "admin.announce_placeholder"),
-        "__T_sendgeneral__": T(lang, "admin.send_general"),
-        "__T_servicehealth__": T(lang, "admin.service_health"),
-        "__T_checking__": T(lang, "admin.checking"),
-        "__T_launchchecklist__": T(lang, "admin.launch_checklist"),
-        "__T_quicklinks__": T(lang, "admin.quick_links"),
-        "__T_link_authentik__": T(lang, "admin.link_authentik"),
-        "__T_link_owncast__": T(lang, "admin.link_owncast"),
-        "__T_link_btcpay__": T(lang, "admin.link_btcpay"),
-        "__T_link_classroom__": T(lang, "admin.link_classroom"),
-        "__T_link_upgrade__": T(lang, "admin.link_upgrade"),
-        "__T_link_landing__": T(lang, "admin.link_landing"),
-        "__T_link_signup__": T(lang, "admin.link_signup"),
-    }
-    out = PAGE
-    for k, val in reps.items():
-        out = out.replace(k, val)
-    return out
-
 # ---------- http --------------------------------------------------------------
 class H(BaseHTTPRequestHandler):
-    def _send(self, code, body, ctype="application/json", cookie=None):
+    def _send(self, code, body, ctype="application/json"):
         data = body if isinstance(body, bytes) else json.dumps(body).encode()
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-store")
-        if cookie:
-            self.send_header("Set-Cookie", cookie)
         self.end_headers()
         self.wfile.write(data)
 
@@ -322,32 +236,27 @@ class H(BaseHTTPRequestHandler):
         return True
 
     def do_GET(self):
-        path = urllib.parse.urlparse(self.path).path
-        if path == "/healthz":
+        if self.path == "/healthz":
             return self._send(200, {"ok": True})
         if not self._admin(): return
-        if path == "/brand-favicon":
+        if self.path == "/brand-favicon":
             try: return self._send(200, open(os.path.join(WWW, "brand", "favicon.ico"), "rb").read(), "image/x-icon")
             except Exception: return self._send(404, {"error": "no favicon"})
-        if path == "/api/state":
-            lang, _ = i18n.resolve(self)
+        if self.path == "/api/state":
             v = env_read()
-            checks = [(sid, i18n.t(lang, "svc." + sid), port_check(p, hp)) for sid, p, hp in SERVICES]
-            hs = {sid: ok for sid, _label, ok in checks}
-            health = [[label, ok] for _sid, label, ok in checks]
+            health = [(n, port_check(p, path)) for n, p, path in SERVICES]
+            hs = dict((n, ok) for n, ok, in health)
             stripe_on = False
-            btc_on = False
             try:
                 with urllib.request.urlopen("http://127.0.0.1:9092/healthz", timeout=3) as r:
                     j = json.load(r); stripe_on = j.get("stripe", False); btc_on = j.get("btcpay", False)
-            except Exception:
-                btc_on = False
+            except Exception: btc_on = False
             launch = [
-                [i18n.t(lang, "launch.stripe"), stripe_on],
-                [i18n.t(lang, "launch.btcpay"), btc_on],
-                [i18n.t(lang, "launch.owncast"), hs.get("owncast", False)],
-                [i18n.t(lang, "launch.sso"), hs.get("sso", False)],
-                [i18n.t(lang, "launch.chat"), hs.get("matrix", False)],
+                ("Stripe live checkout wired", stripe_on),
+                ("BTCPay store wired to bridge", btc_on),
+                ("Livestream up (OwnCast)", hs.get("Livestream (OwnCast)", False)),
+                ("SSO up (Authentik)", hs.get("SSO (Authentik)", False)),
+                ("Chat + federation up (Synapse)", hs.get("Matrix (Synapse)", False)),
             ]
             return self._send(200, {
                 "user": self.headers.get("X-authentik-username", ""),
@@ -355,12 +264,14 @@ class H(BaseHTTPRequestHandler):
                 "sponsors": jload(SPONSORS, []),
                 "banner": jload(BANNER, {}),
                 "health": health, "launch": launch})
-        if path == "/":
-            lang, set_cookie = i18n.resolve(self)
+        if self.path == "/":
             v = env_read()
-            page = render_page(lang, v)
-            cookie = f"ls_lang={lang}; Path=/; Max-Age=31536000; SameSite=Lax" if set_cookie else None
-            return self._send(200, page.encode(), "text/html; charset=utf-8", cookie=cookie)
+            page = (PAGE.replace("__BRAND__", html.escape(v.get("LS_BRAND_NAME", "LibreSynergy")))
+                        .replace("__TAGLINE__", html.escape(v.get("LS_BRAND_TAGLINE", "")))
+                        .replace("__DOMAIN__", v.get("LS_BASE_DOMAIN", ""))
+                        .replace("__CBRAND__", v.get("LS_COLOR_BRAND", "#7c6cff"))
+                        .replace("__CACCENT__", v.get("LS_COLOR_ACCENT", "#ffc15e")))
+            return self._send(200, page.encode(), "text/html; charset=utf-8")
         self._send(404, {"error": "not found"})
 
     def do_POST(self):
@@ -413,5 +324,5 @@ class H(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     os.makedirs(STATE, exist_ok=True)
-    print(f"libresynergy-admin on {LISTEN_HOST}:{LISTEN_PORT} (admin group: {ADMIN_GROUP}, langs: {'/'.join(i18n.LANGS)})")
+    print(f"libresynergy-admin on {LISTEN_HOST}:{LISTEN_PORT} (admin group: {ADMIN_GROUP})")
     ThreadingHTTPServer((LISTEN_HOST, LISTEN_PORT), H).serve_forever()

@@ -17,8 +17,34 @@ A user is premium if stripe is active OR btcpay_until is in the future. A sweepe
 revokes premium once all rails have lapsed. Authentik group membership is reconciled to
 match. Pure stdlib — no pip deps.
 """
-import base64, hashlib, hmac, html, json, os, threading, time, urllib.parse, urllib.request, urllib.error
+import base64, hashlib, hmac, html, json, os, sys, threading, time, urllib.parse, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+# Shared i18n catalog (mounted read-only at /i18n). Optional by design: if it is
+# unavailable the bridge still serves (T() degrades to English via the catalog,
+# or to the key as a last resort) — a missing mount must never break checkout.
+for _p in ("/i18n", "/ls/apps/i18n"):
+    if os.path.isdir(_p) and _p not in sys.path:
+        sys.path.insert(0, _p)
+        break
+try:
+    import i18n
+except Exception:
+    i18n = None
+
+def T(lang, key, **fmt):
+    """Translate key for lang; English/key fallback if the catalog is missing."""
+    return i18n.t(lang, key, **fmt) if i18n else key
+
+def resolve_lang(handler):
+    """(lang, set_cookie) from ?lang= / ls_lang cookie / Accept-Language / default."""
+    return i18n.resolve(handler) if i18n else ("en", False)
+
+def lang_switcher(lang):
+    return i18n.switcher_html(lang, "") if i18n else ""
+
+def lang_cookie(set_cookie, lang):
+    return {"Set-Cookie": f"ls_lang={lang}; Path=/; Max-Age=31536000; SameSite=Lax"} if set_cookie else None
 
 # ---- config ----
 def env(k, d=None, required=False):
@@ -539,8 +565,8 @@ def oidc_exchange(code):
 
 
 # ---------- pages ----------
-def page(title, body):
-    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+def page(title, body, lang="en"):
+    return f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title>
 <link rel="icon" href="https://yaya.sh/brand/favicon.ico" sizes="any">
@@ -569,61 +595,62 @@ font-size:16px;font-weight:700;cursor:pointer;text-decoration:none;margin-top:12
 </style></head><body><div class="card">
 <img class="brandlogo" src="https://yaya.sh/brand/logo.svg" alt="Yaya">
 {body}
-<div class="poweredby">Powered by <a href="https://libresynergy.org">LibreSynergy</a></div>
+<div class="poweredby">{T(lang,'bridge.powered_by')} <a href="https://libresynergy.org">LibreSynergy</a></div>
+{lang_switcher(lang)}
 </div></body></html>"""
 
 
-def upgrade_page(sess, msg=""):
+def upgrade_page(sess, msg="", lang="en"):
     stripe_ready = bool(STRIPE_SECRET_KEY and STRIPE_PRICE_ID)
     btcpay_ready = bool(BTCPAY_URL and BTCPAY_API_KEY and BTCPAY_STORE_ID)
-    card_btn = ('<form method="post" action="/checkout/stripe"><button class="btn btn-card">Pay with card</button></form>'
-                if stripe_ready else '<a class="btn btn-ghost">Card — coming soon</a>')
-    crypto_btn = ('<form method="post" action="/checkout/btcpay"><button class="btn btn-crypto">Pay with Bitcoin / Monero</button></form>'
-                  if btcpay_ready else '<a class="btn btn-ghost">Crypto — syncing, available soon</a>')
-    solana_btn = ('<form method="post" action="/checkout/solana"><button class="btn btn-usdc">Pay with USDC (Solana)</button></form>'
+    card_btn = (f'<form method="post" action="/checkout/stripe"><button class="btn btn-card">{T(lang,"bridge.pay_card")}</button></form>'
+                if stripe_ready else f'<a class="btn btn-ghost">{T(lang,"bridge.card_coming_soon")}</a>')
+    crypto_btn = (f'<form method="post" action="/checkout/btcpay"><button class="btn btn-crypto">{T(lang,"bridge.pay_crypto")}</button></form>'
+                  if btcpay_ready else f'<a class="btn btn-ghost">{T(lang,"bridge.crypto_coming_soon")}</a>')
+    solana_btn = (f'<form method="post" action="/checkout/solana"><button class="btn btn-usdc">{T(lang,"bridge.pay_usdc")}</button></form>'
                   if solana_ready() else '')
     banner = f'<p class="ok">{msg}</p>' if msg else ""
-    return page("Upgrade to Premium", f"""
+    return page(T(lang,"bridge.title_upgrade"), f"""
 {banner}
-<h1>Premium</h1>
-<p class="sub">Signed in as <b>{html.escape(sess['u'])}</b></p>
-<div class="price">${PRICE_USD}<span>/month</span></div>
-<ul><li>Premium chat rooms (Lounge + Vault)</li><li>Paid courses in the Classroom</li>
-<li>Live member events</li><li>Cancel anytime</li></ul>
+<h1>{T(lang,"bridge.premium_heading")}</h1>
+<p class="sub">{T(lang,"bridge.signed_in_as", user="<b>"+html.escape(sess['u'])+"</b>")}</p>
+<div class="price">${PRICE_USD}<span>{T(lang,"bridge.per_month")}</span></div>
+<ul><li>{T(lang,"bridge.feat_rooms")}</li><li>{T(lang,"bridge.feat_courses")}</li>
+<li>{T(lang,"bridge.feat_events")}</li><li>{T(lang,"bridge.feat_cancel")}</li></ul>
 {card_btn}
 {crypto_btn}
 {solana_btn}
-<p class="note">Already premium? <a class="muted" href="{CHAT_URL}">Go to the community →</a></p>
-""")
+<p class="note">{T(lang,"bridge.already_premium")} <a class="muted" href="{CHAT_URL}">{T(lang,"bridge.go_to_community")}</a></p>
+""", lang)
 
 
-def solana_pay_page(sess, ref):
+def solana_pay_page(sess, ref, lang="en"):
     uri = solana_pay_uri(ref)
     qr = qr_svg(uri)
     qr_block = (f'<div style="background:#fff;border-radius:14px;padding:12px;width:210px;margin:8px auto 0">{qr}</div>'
-                if qr else '<p class="note">Scan-to-pay QR unavailable — use the button or copy the details below.</p>')
-    net = "" if SOLANA_NETWORK.startswith("mainnet") else f'<p class="note" style="color:#f7a">⚠ {html.escape(SOLANA_NETWORK)} — test network</p>'
-    return page("Pay with USDC", f"""
-<h1>Pay with USDC</h1>
-<p class="sub">${PRICE_USD} in USDC on Solana · <b>{html.escape(sess['u'])}</b></p>
+                if qr else f'<p class="note">{T(lang,"bridge.qr_unavailable")}</p>')
+    net = "" if SOLANA_NETWORK.startswith("mainnet") else f'<p class="note" style="color:#f7a">{T(lang,"bridge.test_network", network=html.escape(SOLANA_NETWORK))}</p>'
+    return page(T(lang,"bridge.title_usdc"), f"""
+<h1>{T(lang,"bridge.title_usdc")}</h1>
+<p class="sub">{T(lang,"bridge.usdc_on_solana", price=PRICE_USD, user="<b>"+html.escape(sess['u'])+"</b>")}</p>
 {net}
 {qr_block}
-<a class="btn btn-usdc" href="{html.escape(uri)}">Open in Solana wallet</a>
-<p class="note">Or send exactly <b>{PRICE_USD} USDC</b> to:</p>
+<a class="btn btn-usdc" href="{html.escape(uri)}">{T(lang,"bridge.open_wallet")}</a>
+<p class="note">{T(lang,"bridge.or_send_exactly", amount="<b>"+PRICE_USD+" USDC</b>")}</p>
 <div style="background:#0d0d12;border:1px solid #262636;border-radius:10px;padding:10px;font:12px/1.5 monospace;word-break:break-all;color:#cdd">
-<b class="muted">Address</b><br>{html.escape(SOLANA_MERCHANT_ADDRESS)}<br>
-<b class="muted">Reference (include this)</b><br>{html.escape(ref)}</div>
-<p class="note" id="stat">Waiting for payment… this page updates automatically.</p>
+<b class="muted">{T(lang,"bridge.address")}</b><br>{html.escape(SOLANA_MERCHANT_ADDRESS)}<br>
+<b class="muted">{T(lang,"bridge.reference_include")}</b><br>{html.escape(ref)}</div>
+<p class="note" id="stat">{T(lang,"bridge.waiting_payment")}</p>
 <script>
 var ref={json.dumps(ref)};
 var t=setInterval(function(){{
   fetch("/checkout/solana/status?ref="+encodeURIComponent(ref)).then(r=>r.json()).then(function(d){{
-    if(d.paid){{clearInterval(t);document.getElementById("stat").innerHTML="✅ Payment received — activating premium…";
+    if(d.paid){{clearInterval(t);document.getElementById("stat").innerHTML={json.dumps(T(lang,"bridge.payment_received_activating"))};
       setTimeout(function(){{location.href="{PUBLIC_BASE_URL}/done?ok=1"}},1500);}}
   }}).catch(function(){{}});
 }},4000);
 </script>
-""")
+""", lang)
 
 
 # ---------- stripe ----------
@@ -749,7 +776,8 @@ class H(BaseHTTPRequestHandler):
             if not sess:
                 loc, state = oidc_authorize_redirect()
                 return self._redirect(loc, [f"oidc_state={state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600"])
-            return self._send(200, upgrade_page(sess))
+            lang, setck = resolve_lang(self)
+            return self._send(200, upgrade_page(sess, "", lang), headers=lang_cookie(setck, lang))
         if path == "/auth/callback":
             code = (qs.get("code") or [None])[0]
             state = (qs.get("state") or [None])[0]
@@ -758,18 +786,22 @@ class H(BaseHTTPRequestHandler):
                 if part.strip().startswith("oidc_state="):
                     cookie_state = part.strip()[11:]
             if not code or not state or state != cookie_state:
-                return self._send(400, page("Error", "<h1>Login failed</h1><p>Invalid state.</p>"))
+                lang, _ = resolve_lang(self)
+                return self._send(400, page(T(lang,"bridge.title_error"), f'<h1>{T(lang,"bridge.login_failed")}</h1><p>{T(lang,"bridge.invalid_state")}</p>', lang))
             user = oidc_exchange(code)
             if not user:
-                return self._send(502, page("Error", "<h1>Login failed</h1><p>Could not verify identity.</p>"))
+                lang, _ = resolve_lang(self)
+                return self._send(502, page(T(lang,"bridge.title_error"), f'<h1>{T(lang,"bridge.login_failed")}</h1><p>{T(lang,"bridge.could_not_verify")}</p>', lang))
             return self._redirect(f"{PUBLIC_BASE_URL}/upgrade",
                                   [f"sess={make_session(user)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400",
                                    "oidc_state=; Path=/; Max-Age=0"])
         if path == "/done":
-            return self._send(200, page("Thanks!", f"""<h1 class="ok">You're in 🎉</h1>
-<p class="sub">Payment received. Your premium access is being activated.</p>
-<a class="btn btn-card" href="{CHAT_URL}">Enter the community →</a>"""))
-        return self._send(404, page("Not found", "<h1>404</h1>"))
+            lang, setck = resolve_lang(self)
+            return self._send(200, page(T(lang,"bridge.title_thanks"), f"""<h1 class="ok">{T(lang,"bridge.youre_in")}</h1>
+<p class="sub">{T(lang,"bridge.payment_activating")}</p>
+<a class="btn btn-card" href="{CHAT_URL}">{T(lang,"bridge.enter_community")}</a>""", lang), headers=lang_cookie(setck, lang))
+        lang, _ = resolve_lang(self)
+        return self._send(404, page(T(lang,"bridge.title_not_found"), "<h1>404</h1>", lang))
 
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
@@ -785,10 +817,11 @@ class H(BaseHTTPRequestHandler):
             else:
                 email = (urllib.parse.parse_qs(raw).get("email", [""])[0]).strip().lower()
             wants_json = "application/json" in (self.headers.get("Accept", ""))
+            lang, _ = resolve_lang(self)
             if len(email) > MAX_EMAIL_LEN or not EMAIL_RE.match(email):
                 if wants_json:
                     return self._send(400, json.dumps({"ok": False, "error": "invalid email"}), "application/json")
-                return self._send(400, page("Invalid email", "<h1>Hmm 🤔</h1><p class='sub'>That doesn't look like a valid email. Go back and try again.</p>"))
+                return self._send(400, page(T(lang,"bridge.title_invalid_email"), f"<h1>{T(lang,'bridge.hmm')}</h1><p class='sub'>{T(lang,'bridge.invalid_email_body')}</p>", lang))
             if not join_allowed(email):
                 # Rate-limited: create nothing, mail nothing. Return the SAME generic
                 # response as success so /join can neither bomb an inbox nor be used to
@@ -796,10 +829,10 @@ class H(BaseHTTPRequestHandler):
                 log("join rate-limited:", email)
                 if wants_json:
                     return self._send(200, json.dumps({"ok": True}), "application/json")
-                return self._send(200, page("Check your email", f"""
-<h1 class="ok">Check your email ✉️</h1>
-<p class="sub">If you have an account, a one-click sign-in link is on its way to<br><b>{html.escape(email)}</b>.</p>
-<p class="note">Links expire in 15 minutes. Check spam if you don't see it.</p>"""))
+                return self._send(200, page(T(lang,"bridge.title_check_email"), f"""
+<h1 class="ok">{T(lang,"bridge.check_email_heading")}</h1>
+<p class="sub">{T(lang,"bridge.link_on_its_way")}<br><b>{html.escape(email)}</b>.</p>
+<p class="note">{T(lang,"bridge.links_expire_spam")}</p>""", lang))
             try:
                 pk = ensure_user(email)
                 ok = bool(pk) and send_magic_link(pk)
@@ -808,12 +841,12 @@ class H(BaseHTTPRequestHandler):
             if wants_json:
                 return self._send(200 if ok else 502, json.dumps({"ok": ok}), "application/json")
             if not ok:
-                return self._send(502, page("Try again", "<h1>Something went wrong</h1><p class='sub'>We couldn't send your link. Please try again in a minute.</p>"))
-            return self._send(200, page("Check your email", f"""
-<h1 class="ok">Check your email ✉️</h1>
-<p class="sub">We sent a one-click sign-in link to<br><b>{html.escape(email)}</b>.</p>
-<p class="note">It expires in 15 minutes. Didn't get it? Check spam, or
-<a class="muted" href="{PUBLIC_BASE_URL.replace('premium.','')}">try again</a>.</p>"""))
+                return self._send(502, page(T(lang,"bridge.title_try_again"), f"<h1>{T(lang,'bridge.something_wrong')}</h1><p class='sub'>{T(lang,'bridge.couldnt_send')}</p>", lang))
+            retry_link = f'<a class="muted" href="{PUBLIC_BASE_URL.replace("premium.","")}">{T(lang,"bridge.try_again_link")}</a>'
+            return self._send(200, page(T(lang,"bridge.title_check_email"), f"""
+<h1 class="ok">{T(lang,"bridge.check_email_heading")}</h1>
+<p class="sub">{T(lang,"bridge.we_sent_link")}<br><b>{html.escape(email)}</b>.</p>
+<p class="note">{T(lang,"bridge.success_note", link=retry_link)}</p>""", lang))
         if path == "/webhook/stripe":
             payload = self._body()
             if not stripe_verify(payload, self.headers.get("Stripe-Signature", "")):
@@ -846,7 +879,8 @@ class H(BaseHTTPRequestHandler):
             if not solana_ready():
                 return self._redirect(f"{PUBLIC_BASE_URL}/upgrade")
             ref, _ = solana_new_invoice(sess["u"])
-            return self._send(200, solana_pay_page(sess, ref))
+            lang, _ = resolve_lang(self)
+            return self._send(200, solana_pay_page(sess, ref, lang))
         return self._send(404, json.dumps({"error": "not found"}), "application/json")
 
     def log_message(self, *a):

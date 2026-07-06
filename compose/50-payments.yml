@@ -31,8 +31,10 @@ services:
       - ${LS_SECRETS_DIR}/solana.env      # USDC-on-Solana (empty by default = feature off)
     environment:
       - TZ=${LS_TZ:-UTC}
+      - LS_DEFAULT_LANG=${LS_DEFAULT_LANG:-en}
     volumes:
       - ./apps/payments_bridge/app.py:/app/app.py:ro
+      - ./apps/i18n:/i18n:ro            # shared translation catalog (en/es/fr)
       - ${LS_DATA_DIR}/payments_bridge:/state
 
   membership-sync:

@@ -20,3 +20,6 @@ libresynergy.env
 
 # Runtime-installed deps (tracker unit installs on first boot)
 apps/*/node_modules/
+
+__pycache__/
+*.pyc

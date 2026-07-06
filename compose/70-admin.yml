@@ -29,8 +29,10 @@ services:
       WWW_DIR: /www
       STATE_DIR: /state
       TZ: ${LS_TZ:-UTC}
+      LS_DEFAULT_LANG: ${LS_DEFAULT_LANG:-en}
     volumes:
       - ./apps/admin/app.py:/app/app.py:ro
+      - ./apps/i18n:/i18n:ro            # shared translation catalog (en/es/fr)
       - ..:/ls                          # repo root: libresynergy.env lives here
       - ${LS_WWW_DIR}:/www
       - ${LS_DATA_DIR}/admin:/state

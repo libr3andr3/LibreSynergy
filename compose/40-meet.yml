@@ -17,6 +17,11 @@ services:
       - "${LS_SECRETS_DIR}/jitsi.env"
     environment:
       - PUBLIC_URL=https://${LS_MEET}
+      # Default UI language -> config.defaultLanguage (jitsi/web reads DEFAULT_LANGUAGE).
+      # en/es/fr are all valid Jitsi i18n keys, so es/fr deployments boot in-language.
+      # NOTE: compose can't case-map, so es yields Jitsi's Spain Spanish "es"; for the
+      # Peru / neutral-LatAm variant set DEFAULT_LANGUAGE: es-US explicitly here.
+      - DEFAULT_LANGUAGE=${LS_DEFAULT_LANG:-en}
       - ENABLE_COLIBRI_WEBSOCKET=1
       - DISABLE_HTTPS=1 # TLS terminates at the edge proxy
       - ENABLE_AUTH=1

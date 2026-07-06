@@ -545,9 +545,10 @@ def page(title, body):
 <title>{title}</title>
 <link rel="icon" href="https://yaya.sh/brand/favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="https://yaya.sh/brand/app-icon.svg">
+<link rel="stylesheet" href="https://yaya.sh/brand/system.css">
 <meta name="theme-color" content="#0d0d12">
 <style>
-:root{{--bg:#0d0d12;--card:#15151d;--accent:#7c5cff;--text:#eef;--muted:#9aa}}
+:root{{--bg:var(--ls-ink);--card:var(--ls-surface);--accent:var(--ls-brand);--text:var(--ls-text);--muted:var(--ls-muted)}}
 *{{box-sizing:border-box}}body{{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;
 background:radial-gradient(900px 500px at 50% -10%,#1c1740,#0d0d12);color:var(--text);
 min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}}

@@ -1,0 +1,26 @@
+{
+  "en": {
+    "common.name": "Name",
+    "common.link": "Link",
+    "common.clear": "Clear",
+    "common.remove": "remove",
+    "common.error": "error: ",
+    "common.none_yet": "none yet"
+  },
+  "es": {
+    "common.name": "Nombre",
+    "common.link": "Enlace",
+    "common.clear": "Borrar",
+    "common.remove": "quitar",
+    "common.error": "error: ",
+    "common.none_yet": "aún ninguno"
+  },
+  "fr": {
+    "common.name": "Nom",
+    "common.link": "Lien",
+    "common.clear": "Effacer",
+    "common.remove": "retirer",
+    "common.error": "erreur : ",
+    "common.none_yet": "aucun pour l'instant"
+  }
+}

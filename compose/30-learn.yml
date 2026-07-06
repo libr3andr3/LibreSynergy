@@ -1,0 +1,59 @@
+# LibreSynergy — learn unit: Frappe LMS (classroom) at https://${LS_LEARN}
+# Edge proxy reaches the app on the proven loopback port 127.0.0.1:8100.
+# Data lives under ${LS_DATA_DIR}/frappe/{sites,redis-cache,redis-queue} — keep these
+# subpaths so an existing instance retains its volumes.
+
+services:
+  redis-cache:
+    # NOTE: this service name is a hostname referenced by the Frappe site config
+    # persisted in the sites volume — do not rename.
+    image: redis:7-alpine
+    restart: unless-stopped
+    environment:
+      - TZ=${LS_TZ:-UTC}
+    volumes:
+      - ${LS_DATA_DIR}/frappe/redis-cache:/data
+
+  redis-queue:
+    # NOTE: hostname baked into the persisted Frappe site config — do not rename.
+    image: redis:7-alpine
+    restart: unless-stopped
+    environment:
+      - TZ=${LS_TZ:-UTC}
+    volumes:
+      - ${LS_DATA_DIR}/frappe/redis-queue:/data
+
+  app:
+    image: frappe/erpnext:v16
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8100:8000"  # proven loopback port map — do not renumber
+    env_file: [ "${LS_SECRETS_DIR}/frappe.env" ]  # provides ADMIN_PASSWORD
+    environment:
+      - FRAPPE_SITE_NAME=${LS_LEARN}
+      - TZ=${LS_TZ:-UTC}
+    volumes:
+      # /home/frappe/... is a path INSIDE the container image, not a host path.
+      - ${LS_DATA_DIR}/frappe/sites:/home/frappe/frappe-bench/sites
+    depends_on:
+      - redis-cache
+      - redis-queue
+    # First boot: create the ${LS_LEARN} site (sqlite) and install the LMS app.
+    # Later boots: skip straight to serving.
+    # ${LS_LEARN} is interpolated by compose at deploy time; $$ADMIN_PASSWORD is
+    # escaped so it resolves inside the container from frappe.env.
+    # List + literal block ("|") keeps the script's newlines — a folded scalar
+    # would collapse it into one unparseable shell line.
+    entrypoint:
+      - bash
+      - -c
+      - |
+        set -e
+        cd /home/frappe/frappe-bench
+        if [ ! -f "sites/${LS_LEARN}/site_config.json" ]; then
+          bench new-site ${LS_LEARN} --admin-password "$$ADMIN_PASSWORD" --db-type sqlite --force
+          bench get-app lms --branch main https://github.com/frappe/lms 2>/dev/null || bench get-app lms https://github.com/frappe/lms
+          bench --site ${LS_LEARN} install-app lms
+        fi
+        bench set-config -g developer_mode 0 2>/dev/null || true
+        bench serve --port 8000

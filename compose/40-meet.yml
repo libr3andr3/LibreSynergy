@@ -1,0 +1,104 @@
+# LibreSynergy — Jitsi Meet stack (webinars / video rooms) at https://${LS_MEET}
+#
+# Internal XMPP credentials live in ${LS_SECRETS_DIR}/jitsi.env (see
+# secrets/jitsi.env.example) — every service below loads that one file, so no
+# credential appears in this compose file.
+# Core unit: always on (no compose profile).
+# Proven loopback port map — do not renumber: jitsi-web 127.0.0.1:8200.
+# UDP 10000 is WebRTC media and must be reachable by participants.
+
+services:
+  jitsi-web:
+    image: jitsi/web:stable
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8200:80" # edge proxy terminates TLS and forwards here
+    env_file:
+      - "${LS_SECRETS_DIR}/jitsi.env"
+    environment:
+      - PUBLIC_URL=https://${LS_MEET}
+      - ENABLE_COLIBRI_WEBSOCKET=1
+      - DISABLE_HTTPS=1 # TLS terminates at the edge proxy
+      - ENABLE_AUTH=1
+      - ENABLE_GUESTS=1
+      - AUTH_TYPE=internal
+      - XMPP_SERVER=jitsi-prosody
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_GUEST_DOMAIN=guest.meet.jitsi
+      - XMPP_RECORDER_DOMAIN=recorder.meet.jitsi
+      - JVB_BREWERY_MUC=jvbbrewery
+      - TZ=${LS_TZ:-UTC}
+    depends_on: [ jitsi-prosody ]
+    volumes:
+      - ${LS_DATA_DIR}/jitsi/web:/config
+      # Community branding — these three files must already exist under
+      # ${LS_WWW_DIR}/brand (swap them to rebrand; if missing, Docker would
+      # create empty directories in their place and break the mounts).
+      - ${LS_WWW_DIR}/brand/logo.svg:/usr/share/jitsi-meet/images/watermark.svg:ro
+      - ${LS_WWW_DIR}/brand/favicon.ico:/usr/share/jitsi-meet/images/favicon.ico:ro
+      - ${LS_WWW_DIR}/brand/apple-touch-icon.png:/usr/share/jitsi-meet/images/apple-touch-icon.png:ro
+
+  jitsi-prosody:
+    image: jitsi/prosody:stable
+    restart: unless-stopped
+    expose: [ "5222", "5280" ] # XMPP c2s + BOSH/websocket, internal only
+    env_file:
+      - "${LS_SECRETS_DIR}/jitsi.env"
+    environment:
+      - ENABLE_AUTH=1
+      - ENABLE_GUESTS=1
+      - AUTH_TYPE=internal
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - XMPP_GUEST_DOMAIN=guest.meet.jitsi
+      - XMPP_RECORDER_DOMAIN=recorder.meet.jitsi
+      - TZ=${LS_TZ:-UTC}
+    volumes:
+      - ${LS_DATA_DIR}/jitsi/prosody:/config
+
+  jitsi-jicofo:
+    image: jitsi/jicofo:stable
+    restart: unless-stopped
+    env_file:
+      - "${LS_SECRETS_DIR}/jitsi.env"
+    environment:
+      - XMPP_SERVER=jitsi-prosody
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - JVB_BREWERY_MUC=jvbbrewery
+      - ENABLE_AUTH=1
+      - ENABLE_GUESTS=1
+      - AUTH_TYPE=internal
+      - TZ=${LS_TZ:-UTC}
+    depends_on: [ jitsi-prosody ]
+    volumes:
+      - ${LS_DATA_DIR}/jitsi/jicofo:/config
+
+  jitsi-jvb:
+    image: jitsi/jvb:stable
+    restart: unless-stopped
+    ports:
+      - "10000:10000/udp" # WebRTC media — must be reachable by participants
+    env_file:
+      - "${LS_SECRETS_DIR}/jitsi.env"
+    environment:
+      - XMPP_SERVER=jitsi-prosody
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+      - JVB_BREWERY_MUC=jvbbrewery
+      - JVB_PORT=10000
+      # Non-Google default; override via LS_STUN_SERVERS (comma-separated host:port)
+      - JVB_STUN_SERVERS=${LS_STUN_SERVERS:-meet-jit-si-turnrelay.jitsi.net:443}
+      # If this node is behind NAT, uncomment and set the public IP(s) so
+      # participants receive a reachable media address:
+      # - JVB_ADVERTISE_IPS=203.0.113.10
+      - TZ=${LS_TZ:-UTC}
+    depends_on: [ jitsi-prosody ]
+    volumes:
+      - ${LS_DATA_DIR}/jitsi/jvb:/config

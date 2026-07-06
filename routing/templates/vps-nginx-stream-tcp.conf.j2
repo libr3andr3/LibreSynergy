@@ -1,0 +1,13 @@
+# {{ NAME }} — raw-TCP passthrough on the VPS relay.
+# Rendered by `bin/ls-route tcp {{ NAME }} {{ PORT }}` into
+# /etc/nginx/stream.d/{{ NAME }}.conf and included from the stream {} block.
+#
+# Unlike the HTTPS path there is NO ssl_preread and NO proxy_protocol: most
+# non-HTTP protocols (Minecraft, Postgres, SSH, game servers) speak neither.
+# The relay is a dumb L4 pipe straight to the node over WireGuard.
+server {
+    listen {{ PORT }};
+    proxy_pass {{ TARGET_WG_IP }}:{{ PORT }};
+    proxy_connect_timeout 10s;
+    proxy_timeout 3600s;
+}

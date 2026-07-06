@@ -1,0 +1,41 @@
+# LibreSynergy — chat unit
+# Matrix Synapse homeserver (https://${LS_MATRIX}) + branded web client (https://${LS_CHAT}).
+# Core services: always on, no compose profile.
+#
+# Proven loopback port map (do NOT renumber):
+#   synapse      127.0.0.1:8008
+#   chat client  127.0.0.1:8114
+
+services:
+  synapse:
+    image: matrixdotorg/synapse:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8008:8008" # reverse-proxied by the edge at https://${LS_MATRIX}
+    environment:
+      - SYNAPSE_SERVER_NAME=${LS_MATRIX}
+      - SYNAPSE_REPORT_STATS=no
+      # Closed by default: communities gate sign-up through SSO (authentik).
+      - SYNAPSE_ENABLE_REGISTRATION=${LS_ENABLE_REGISTRATION:-false}
+      - SYNAPSE_NO_TLS=1 # TLS terminates at the edge proxy
+      - TZ=${LS_TZ:-UTC}
+    env_file:
+      - "${LS_SECRETS_DIR}/matrix.env" # SYNAPSE_REGISTRATION_SHARED_SECRET, MATRIX_BOT_TOKEN
+    volumes:
+      # Same relative subpath as pre-v1.0 instances, so existing data carries over.
+      - ${LS_DATA_DIR}/matrix/synapse:/data
+
+  chat:
+    # Branded Cinny (Matrix web client). Built from source shipped in this repo;
+    # adjust the build context if you vendor the client elsewhere.
+    image: libresynergy-chat:latest
+    build:
+      context: ../apps/chat_cinny
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8114:80"
+    environment:
+      - TZ=${LS_TZ:-UTC}
+    volumes:
+      # Operators template this config.json (set the homeserver URL to https://${LS_MATRIX}).
+      - ${LS_WWW_DIR}/chat/config.json:/usr/share/nginx/html/config.json:ro

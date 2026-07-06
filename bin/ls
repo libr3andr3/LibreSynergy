@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# LibreSynergy CLI — one command to run your community OS.
+#   ./bin/ls init                 copy env + generate secrets + make dirs
+#   ./bin/ls up [profiles...]     start core (+ payments|stream|btcpay|games|files)
+#   ./bin/ls down                 stop everything
+#   ./bin/ls restart [service]    recreate all or one service
+#   ./bin/ls status               show running services
+#   ./bin/ls logs [service]       tail logs
+#   ./bin/ls config               render the merged compose (validation)
+#   ./bin/ls route ...            add a web/tcp route (see: ./bin/ls route)
+#   ./bin/ls brand                re-apply branding from libresynergy.env
+#   ./bin/ls backup               tar up data/ + secrets/
+#   ./bin/ls doctor               preflight checks (DNS, tunnel, ports)
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ENV_FILE="$ROOT/libresynergy.env"
+COMPOSE="$ROOT/docker-compose.yml"
+
+die(){ printf '\033[0;31mError:\033[0m %s\n' "$*" >&2; exit 1; }
+say(){ printf '\033[0;36m▸\033[0m %s\n' "$*"; }
+
+load_env(){
+  [ -f "$ENV_FILE" ] || die "no libresynergy.env — run: ./bin/ls init"
+  set -a; . "$ENV_FILE"; set +a
+  # Host paths MUST be absolute: docker compose `include` resolves env_file and
+  # relative volumes against each included file's dir (compose/), not the repo root.
+  LS_DATA_DIR="$(cd "$ROOT" && realpath -m "${LS_DATA_DIR:-./data}")"
+  LS_WWW_DIR="$(cd "$ROOT" && realpath -m "${LS_WWW_DIR:-./www}")"
+  LS_SECRETS_DIR="$(cd "$ROOT" && realpath -m "${LS_SECRETS_DIR:-./secrets}")"
+  export LS_DATA_DIR LS_WWW_DIR LS_SECRETS_DIR
+  # The btcpay unit interpolates its internal credentials (${BTCPAY_*}) at
+  # compose time, so they must be in the shell env, not just an env_file.
+  [ -f "$LS_SECRETS_DIR/btcpay-server.env" ] && { set -a; . "$LS_SECRETS_DIR/btcpay-server.env"; set +a; }
+  return 0
+}
+
+dc(){ docker compose --project-directory "$ROOT" -f "$COMPOSE" "$@"; }
+
+cmd="${1:-help}"; shift || true
+case "$cmd" in
+  init)
+    if [ ! -f "$ENV_FILE" ]; then
+      cp "$ROOT/libresynergy.env.example" "$ENV_FILE"
+      say "created libresynergy.env — edit it (at least LS_BASE_DOMAIN) then re-run init"
+    fi
+    load_env
+    mkdir -p "$LS_DATA_DIR" "$LS_WWW_DIR/brand" "$LS_WWW_DIR/chat" "$LS_SECRETS_DIR" \
+             "$ROOT/compose/templates" "$ROOT/compose/blueprints" "$ROOT/apps"
+    bash "$ROOT/scripts/gen-secrets.sh"
+    say "initialized. Next: create DNS records, then ./bin/ls up"
+    ;;
+  up)
+    load_env
+    pf=(); for p in "$@"; do pf+=(--profile "$p"); done
+    say "starting stack${*:+ + profiles: $*}"
+    dc "${pf[@]}" up -d
+    ;;
+  down)      load_env; dc --profile payments --profile stream --profile btcpay --profile games --profile files down ;;
+  restart)   load_env; dc up -d --force-recreate ${1:+"$1"} ;;
+  status|ps) load_env; dc ps ;;
+  logs)      load_env; dc logs -f --tail=100 ${1:+"$1"} ;;
+  config)    load_env; dc "$@" config ;;
+  route)     load_env; exec "$ROOT/bin/ls-route" "$@" ;;
+  brand)     load_env; exec bash "$ROOT/apply-branding.sh" ;;
+  doctor)    load_env; exec bash "$ROOT/scripts/preflight.sh" ;;
+  backup)
+    load_env
+    ts="$(date -u +%Y%m%dT%H%M%SZ)"
+    mkdir -p "$ROOT/backups"
+    out="$ROOT/backups/libresynergy-$ts.tar.gz"
+    say "backing up data/ + secrets/ -> $out"
+    tar -czf "$out" -C "$ROOT" \
+      "$(realpath --relative-to="$ROOT" "$LS_DATA_DIR")" \
+      "$(realpath --relative-to="$ROOT" "$LS_SECRETS_DIR")" 2>/dev/null || \
+      die "backup failed (are LS_DATA_DIR/LS_SECRETS_DIR inside the repo?)"
+    say "done: $(du -h "$out" | cut -f1)"
+    ;;
+  help|--help|-h|"")
+    sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
+    ;;
+  *) die "unknown command '$cmd' (try: ./bin/ls help)" ;;
+esac

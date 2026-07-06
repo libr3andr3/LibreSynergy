@@ -1,0 +1,44 @@
+# LibreSynergy — Minecraft server (optional, profile: games)
+#
+# This is the proof-of-concept for self-hosting a NON-HTTP service:
+# raw TCP, no TLS, no SNI — so it cannot ride the normal HTTPS edge.
+# Instead it binds the node's WireGuard IP and the relay stream-forwards
+# the port verbatim. Full walkthrough: docs/self-host-minecraft.md
+#
+#   Start:  docker compose --profile games up -d minecraft
+#   Route:  ls-route tcp minecraft 25565
+
+services:
+  minecraft:
+    image: itzg/minecraft-server:latest
+    profiles: ["games"]
+    restart: unless-stopped
+    ports:
+      # Deliberate exception to the 127.0.0.1 rule: bind the WireGuard IP
+      # so the VPS relay can reach the server over the tunnel. Not exposed
+      # on any public interface of the node itself.
+      - "${LS_WG_IP:-10.0.0.2}:25565:25565"
+    environment:
+      EULA: "TRUE"                            # accepts https://aka.ms/MinecraftEULA
+      TYPE: "PAPER"                           # PaperMC: performant + plugin support
+      VERSION: "LATEST"
+      MEMORY: "${MC_MEMORY:-2G}"              # JVM heap; raise for larger player counts
+      MOTD: "${LS_BRAND_NAME:-LibreSynergy} community server"
+      ONLINE_MODE: "${MC_ONLINE_MODE:-TRUE}"  # TRUE = verify players against Mojang auth
+      TZ: "${LS_TZ:-UTC}"
+    volumes:
+      # World, plugins, server config — same relative subpath as the proven
+      # instance, so existing data is picked up unchanged.
+      - "${LS_DATA_DIR}/minecraft:/data"
+    # Give the JVM time to flush the world to disk on shutdown; the compose
+    # default (10s) can SIGKILL mid-save and corrupt world data.
+    stop_grace_period: 1m
+    healthcheck:
+      # mc-health ships inside the itzg image (wraps mc-monitor's status ping).
+      test: ["CMD", "mc-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 2m                        # first boot downloads Paper + generates the world
+    stdin_open: true                          # keep console usable via `docker compose attach`
+    tty: true

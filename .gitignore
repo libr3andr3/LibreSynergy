@@ -1,0 +1,22 @@
+# Secrets — real values never get committed; only the *.example templates do.
+secrets/*.env
+secrets/spaces.json
+!secrets/*.example
+
+# Runtime state and backups
+data/
+backups/
+*.log
+
+# Generated brand tokens (produced by apply-branding.sh)
+www/brand/tokens.css
+
+# Operator-supplied local config
+libresynergy.env
+
+# OS / editor cruft
+.DS_Store
+*.swp
+
+# Runtime-installed deps (tracker unit installs on first boot)
+apps/*/node_modules/

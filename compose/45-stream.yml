@@ -1,0 +1,30 @@
+# LibreSynergy — livestreaming unit (optional, profile: "stream").
+#
+# OwnCast: RTMP ingest (OBS & friends) + HLS playback + built-in live chat on
+# the watch page. Web/HLS exposes ONLY on 127.0.0.1:8600 (Caddy serves
+# https://${LS_LIVE}); RTMP binds the WireGuard IP so the relay stream-forwards
+# public :1935 verbatim — the same non-HTTP pattern as Minecraft.
+#
+#   Start:  ./bin/ls up stream
+#   Route:  ./bin/ls route web live 8600   &&   ./bin/ls route tcp rtmp 1935
+#   Stream: point OBS at rtmp://${LS_LIVE}/live with your stream key.
+#
+# First-run hardening (do this before announcing the URL): the admin login is
+# admin/abc123 until changed. Set a real password + stream key via the admin
+# API and keep them in ${LS_SECRETS_DIR}/owncast.env — see docs/livestreaming.md.
+
+services:
+  owncast:
+    image: owncast/owncast:0.2.3
+    profiles: ["stream"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8600:8080"
+      # Deliberate exception to the 127.0.0.1 rule (see minecraft.yml): the
+      # relay reaches RTMP over the tunnel; not exposed on any public interface.
+      - "${LS_WG_IP:-10.0.0.2}:1935:1935"
+    environment:
+      TZ: ${LS_TZ:-UTC}
+    volumes:
+      - ${LS_DATA_DIR}/owncast:/app/data
+    stop_grace_period: 30s

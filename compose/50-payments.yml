@@ -1,0 +1,75 @@
+# compose/50-payments.yml — LibreSynergy optional payments stack (profile: "payments")
+#
+# Three pure-stdlib Python sidecars, all network_mode: host, reverse-proxied by Caddy:
+#   payments-bridge  -> serves https://${LS_PREMIUM} (Stripe + BTCPay checkout/webhooks)
+#   membership-sync  -> 127.0.0.1:9101 (reconciles Authentik groups -> Matrix spaces / Frappe)
+#   events           -> Matrix event announcer (no inbound listener)
+#
+# Enable with:  docker compose --profile payments up -d
+# Operator supplies the app code at ./apps/<name>/app.py (sources are out of scope
+# for this distribution; copy them from your running instance).
+#
+# Before first start, also copy secrets/spaces.json.example to
+# ${LS_SECRETS_DIR}/spaces.json — if the file is missing, Docker will create a
+# directory in its place and membership-sync will fail to read its group map.
+
+services:
+  payments-bridge:
+    image: python:3.12-slim
+    restart: unless-stopped
+    network_mode: host            # binds loopback only; Caddy fronts ${LS_PREMIUM}
+    profiles: ["payments"]
+    working_dir: /app
+    command: ["python", "-u", "app.py"]
+    env_file:
+      - ${LS_SECRETS_DIR}/authentik.env   # Authentik API token (example ships with the auth unit)
+      - ${LS_SECRETS_DIR}/bridge.env
+      - ${LS_SECRETS_DIR}/stripe.env
+      - ${LS_SECRETS_DIR}/btcpay.env
+    environment:
+      - TZ=${LS_TZ:-UTC}
+    volumes:
+      - ./apps/payments_bridge/app.py:/app/app.py:ro
+      - ${LS_DATA_DIR}/payments_bridge:/state
+
+  membership-sync:
+    image: python:3.12-slim
+    restart: unless-stopped
+    network_mode: host            # serves 127.0.0.1:9101 — proven port map, do not renumber
+    profiles: ["payments"]
+    working_dir: /app
+    command: ["python", "-u", "app.py"]
+    env_file:
+      - ${LS_SECRETS_DIR}/authentik.env   # example ships with the auth unit
+      - ${LS_SECRETS_DIR}/matrix.env      # example ships with the matrix unit
+      - ${LS_SECRETS_DIR}/frappe.env      # example ships with the learn unit
+    environment:
+      - TZ=${LS_TZ:-UTC}
+      - LISTEN_HOST=127.0.0.1
+      - LISTEN_PORT=9101
+      - RECONCILE_INTERVAL=60
+      - SPACES_FILE=/config/spaces.json
+      - WELCOME_ENABLED=1
+      - WELCOME_STATE=/state/welcomed.json
+      - APP_URL=https://${LS_APP}
+    volumes:
+      - ./apps/membership_sync/app.py:/app/app.py:ro
+      - ${LS_SECRETS_DIR}/spaces.json:/config/spaces.json:ro   # group -> Matrix space map (operator-edited; see secrets/spaces.json.example)
+      - ${LS_DATA_DIR}/membership_sync:/state
+
+  events:
+    image: python:3.12-slim
+    restart: unless-stopped
+    network_mode: host
+    profiles: ["payments"]
+    working_dir: /app
+    command: ["python", "-u", "app.py"]
+    env_file:
+      - ${LS_SECRETS_DIR}/matrix.env      # example ships with the matrix unit
+      - ${LS_SECRETS_DIR}/events.env
+    environment:
+      - TZ=${LS_TZ:-UTC}
+      - STATE_DIR=/state
+    volumes:
+      - ./apps/events/app.py:/app/app.py:ro
+      - ${LS_DATA_DIR}/events:/state

@@ -1,0 +1,58 @@
+# LibreSynergy v1.0 — edge unit: Caddy reverse proxy + jobs helper.
+# Both run with network_mode: host so Caddy can bind the WireGuard IP
+# (${LS_WG_IP}) directly and proxy to the 127.0.0.1 loopback port map.
+#
+# Required env (.env at repo root): LS_BASE_DOMAIN, LS_ADMIN_EMAIL,
+#                                   LS_DATA_DIR, LS_WWW_DIR
+# Everything else has sane defaults (subdomain hosts derive from LS_BASE_DOMAIN).
+
+name: ${LS_PROJECT_NAME:-libresynergy}
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      TZ: ${LS_TZ:-UTC}
+      # Consumed by the Caddyfile via {$VAR} placeholders at config-load time.
+      LS_ADMIN_EMAIL: ${LS_ADMIN_EMAIL}
+      LS_BASE_DOMAIN: ${LS_BASE_DOMAIN}
+      LS_AUTH: ${LS_AUTH:-auth.${LS_BASE_DOMAIN}}
+      LS_MATRIX: ${LS_MATRIX:-matrix.${LS_BASE_DOMAIN}}
+      LS_CHAT: ${LS_CHAT:-chat.${LS_BASE_DOMAIN}}
+      LS_LEARN: ${LS_LEARN:-learn.${LS_BASE_DOMAIN}}
+      LS_MEET: ${LS_MEET:-meet.${LS_BASE_DOMAIN}}
+      LS_APP: ${LS_APP:-app.${LS_BASE_DOMAIN}}
+      LS_LIVE: ${LS_LIVE:-live.${LS_BASE_DOMAIN}}
+      LS_PREMIUM: ${LS_PREMIUM:-premium.${LS_BASE_DOMAIN}}
+      LS_PAY: ${LS_PAY:-btcpay.${LS_BASE_DOMAIN}}
+      LS_ADMIN: ${LS_ADMIN:-admin.${LS_BASE_DOMAIN}}
+      LS_TRACKER: ${LS_TRACKER:-tracker.${LS_BASE_DOMAIN}}
+      LS_WG_IP: ${LS_WG_IP:-10.0.0.2}
+      LS_RELAY_WG_IP: ${LS_RELAY_WG_IP:-10.0.0.1}
+    volumes:
+      # Caddyfile lives at the repo root (one level up from compose/).
+      - ../Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${LS_WWW_DIR}:/srv/www:ro
+      - ${LS_DATA_DIR}/caddy/data:/data
+      - ${LS_DATA_DIR}/caddy/config:/config
+    cap_add:
+      - NET_BIND_SERVICE
+
+  # Small helper app: job-board submissions (9091), join form (9092), site API.
+  jobs:
+    build:
+      context: ..   # Dockerfile + app.py live at the repo root
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      TZ: ${LS_TZ:-UTC}
+      YAYA_LISTEN_HOST: 127.0.0.1
+      YAYA_LISTEN_PORT: "9091"
+      YAYA_UPLOAD_DIR: /var/lib/yaya/jobs
+      YAYA_NOTIFY_EMAIL: ${LS_ADMIN_EMAIL}
+      YAYA_FROM_EMAIL: jobs@${LS_BASE_DOMAIN}
+      YAYA_SMTP_HOST: localhost
+    volumes:
+      - ${LS_DATA_DIR}/jobs:/var/lib/yaya/jobs

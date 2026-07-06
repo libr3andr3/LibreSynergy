@@ -1,0 +1,174 @@
+# LibreSynergy v1.0 — edge Caddyfile.
+# All {$LS_*} placeholders are environment variables, injected by
+# compose/00-edge.yml (with defaults derived from LS_BASE_DOMAIN).
+# Caddy binds only the WireGuard IP; public traffic arrives via the relay,
+# which speaks PROXY protocol so client IPs are preserved.
+
+{
+    email {$LS_ADMIN_EMAIL}
+    servers {
+        listener_wrappers {
+            # Accept PROXY protocol only from the relay, and unwrap it
+            # BEFORE the TLS handshake (order matters).
+            proxy_protocol {
+                allow {$LS_RELAY_WG_IP:10.0.0.1}/32
+            }
+            tls
+        }
+    }
+}
+
+(secure_headers) {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        X-Frame-Options "SAMEORIGIN"
+        -Server
+    }
+}
+
+# Plain HTTP: redirect everything to HTTPS.
+:80 {
+    bind {$LS_WG_IP:10.0.0.2}
+    redir https://{host}{uri} permanent
+}
+
+# Landing site + small first-party endpoints (jobs board, join form, site API).
+{$LS_BASE_DOMAIN} {
+    bind {$LS_WG_IP:10.0.0.2}
+    import secure_headers
+    handle /jobs/submit {
+        reverse_proxy 127.0.0.1:9091
+    }
+    handle /join {
+        reverse_proxy 127.0.0.1:9092
+    }
+    handle /api/* {
+        reverse_proxy 127.0.0.1:9102
+    }
+    handle {
+        root * /srv/www
+        file_server
+    }
+}
+
+# Authentik SSO
+{$LS_AUTH} {
+    bind {$LS_WG_IP:10.0.0.2}
+    import secure_headers
+    reverse_proxy 127.0.0.1:8300 {
+        header_up X-Forwarded-For {remote_host}
+    }
+}
+
+# Jitsi Meet — must be embeddable from the app/landing pages, so it gets a
+# frame-ancestors CSP instead of X-Frame-Options (and strips Jitsi's own).
+{$LS_MEET} {
+    bind {$LS_WG_IP:10.0.0.2}
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Content-Security-Policy "frame-ancestors 'self' https://{$LS_APP} https://{$LS_BASE_DOMAIN} https://{$LS_MEET}"
+        -X-Frame-Options
+        -Server
+    }
+    reverse_proxy 127.0.0.1:8200 {
+        header_down -X-Frame-Options
+        header_down -Content-Security-Policy
+    }
+}
+
+# Frappe LMS (classroom)
+{$LS_LEARN} {
+    bind {$LS_WG_IP:10.0.0.2}
+    import secure_headers
+    reverse_proxy 127.0.0.1:8100 {
+        header_up X-Forwarded-For {remote_host}
+    }
+}
+
+# Synapse (Matrix homeserver): serve well-known delegation, block the
+# admin API from the public edge, proxy the rest.
+{$LS_MATRIX} {
+    bind {$LS_WG_IP:10.0.0.2}
+    import secure_headers
+    @admin path /_synapse/admin/*
+    respond @admin "Not found" 404
+    header /.well-known/matrix/* Access-Control-Allow-Origin "*"
+    respond /.well-known/matrix/server `{"m.server":"{$LS_MATRIX}:443"}` 200 {
+        close
+    }
+    respond /.well-known/matrix/client `{"m.homeserver":{"base_url":"https://{$LS_MATRIX}"}}` 200 {
+        close
+    }
+    reverse_proxy 127.0.0.1:8008 {
+        header_up X-Forwarded-For {remote_host}
+    }
+}
+
+# Matrix web client
+{$LS_CHAT} {
+    bind {$LS_WG_IP:10.0.0.2}
+    import secure_headers
+    reverse_proxy 127.0.0.1:8114
+}
+
+# Livestream (OwnCast, profile: stream) — the player must be embeddable from
+# the landing/app pages, so frame-ancestors replaces X-Frame-Options (like Jitsi).
+{$LS_LIVE} {
+    bind {$LS_WG_IP:10.0.0.2}
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Content-Security-Policy "frame-ancestors 'self' https://{$LS_APP} https://{$LS_BASE_DOMAIN}"
+        -X-Frame-Options
+        -Server
+    }
+    # public stream status — lets the app homescreen show its LIVE badge
+    @status path /api/status
+    header @status Access-Control-Allow-Origin "*"
+    reverse_proxy 127.0.0.1:8600
+}
+
+# Checkout / account pages (payments bridge, profile: payments)
+{$LS_PREMIUM} {
+    bind {$LS_WG_IP:10.0.0.2}
+    import secure_headers
+    reverse_proxy 127.0.0.1:9092
+}
+
+# Self-hosted Bitcoin checkout (BTCPay Server, profile: btcpay)
+{$LS_PAY} {
+    bind {$LS_WG_IP:10.0.0.2}
+    import secure_headers
+    reverse_proxy 127.0.0.1:8500
+}
+
+# Admin dashboard (profile: admin) — Authentik forward-auth via the embedded
+# outpost; the app additionally enforces the admins group on every request.
+{$LS_ADMIN} {
+    bind {$LS_WG_IP:10.0.0.2}
+    import secure_headers
+    reverse_proxy /outpost.goauthentik.io/* 127.0.0.1:8300
+    forward_auth 127.0.0.1:8300 {
+        uri /outpost.goauthentik.io/auth/caddy
+        copy_headers X-authentik-username X-authentik-groups X-authentik-email
+    }
+    reverse_proxy 127.0.0.1:9110
+}
+
+# WebTorrent tracker (course VOD peer discovery, profile: vod) — WebSocket over 443/SNI.
+{$LS_TRACKER} {
+    bind {$LS_WG_IP:10.0.0.2}
+    import secure_headers
+    reverse_proxy 127.0.0.1:9120
+}
+
+# Community web app (static)
+{$LS_APP} {
+    bind {$LS_WG_IP:10.0.0.2}
+    import secure_headers
+    root * /srv/www/app
+    file_server
+}

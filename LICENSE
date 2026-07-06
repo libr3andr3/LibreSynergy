@@ -1,0 +1,28 @@
+LibreSynergy — a self-hosted community OS.
+Copyright (C) 2026 yaya tech / André (andre@yaya.sh) and contributors.
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along
+with this program. If not, see <https://www.gnu.org/licenses/>.
+
+------------------------------------------------------------------------------
+WHY AGPL: LibreSynergy is software people run as a network service for their
+communities. The AGPL's network clause (§13) guarantees that anyone who offers
+a modified LibreSynergy over a network must offer that community the modified
+source too — so the commons can never be quietly enclosed into a proprietary
+product. This is a deliberate, values-driven choice (see MANIFESTO.md). A
+community may of course fork and relicense its OWN independent additions as its
+own copyright allows.
+
+TODO before public distribution: append the full verbatim text of the GNU AGPL
+v3 from https://www.gnu.org/licenses/agpl-3.0.txt beneath this notice.

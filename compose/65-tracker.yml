@@ -1,0 +1,30 @@
+# LibreSynergy — VOD / course-swarm unit (optional, profile: "vod").
+#
+# A sovereign WebTorrent tracker: peer discovery for course video distributed
+# BitTorrent-style, PeerTube-fashion. Free learners stream a lesson and seed it
+# to the next learner from the browser — the origin webseed guarantees playback
+# with an empty swarm. See docs/peertube-layer.md.
+#
+#   Enable:  ./bin/ls up vod
+#   Route:   ./bin/ls route web tracker 9120
+#   Publish a course: node apps/tracker/course.mjs create www/vod/lesson.mp4 \
+#                       https://<domain>/vod/lesson.mp4   (then sign the infohash)
+#
+# The WebSocket tracker rides 443/SNI like every other web unit — no dedicated
+# port. It coordinates peers only; content bytes never pass through it.
+# node_modules is installed on first boot into the mounted dir (persisted).
+
+services:
+  tracker:
+    image: node:22-alpine
+    profiles: ["vod"]
+    restart: unless-stopped
+    network_mode: host            # binds loopback only; Caddy fronts ${LS_TRACKER}
+    working_dir: /app
+    command: ["sh", "-c", "npm install --omit=dev --no-audit --no-fund && node tracker.mjs"]
+    environment:
+      TRACKER_HOST: 127.0.0.1
+      TRACKER_PORT: "9120"
+      TZ: ${LS_TZ:-UTC}
+    volumes:
+      - ./apps/tracker:/app

@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# ls-route — publish a service through the sovereign relay, idempotently.
+#
+#   ls-route web <sub> <local_port>   HTTPS service (SNI-routed, shares :443)
+#   ls-route tcp <name> <port>        raw-TCP service (own port; games/db/ssh)
+#   ls-route list                     show current web + tcp routes
+#
+# Reads LS_* from ../libresynergy.env. Reaches the relay via LS_RELAY_SSH and
+# the node via LS_NODE_SSH (ssh aliases). Mirrors the proven runbook:
+#   web: SNI map entry on relay  +  Caddy vhost on node  (+ DNS A record)
+#   tcp: firewall open on relay  +  nginx stream forward  (+ DNS A [+ SRV])
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+[ -f "$ROOT/libresynergy.env" ] && { set -a; . "$ROOT/libresynergy.env"; set +a; }
+
+RELAY="${LS_RELAY_SSH:?set LS_RELAY_SSH}"
+NODE="${LS_NODE_SSH:?set LS_NODE_SSH}"
+WG_IP="${LS_WG_IP:-10.0.0.2}"
+DOMAIN="${LS_BASE_DOMAIN:?set LS_BASE_DOMAIN}"
+PUBIP="${LS_RELAY_PUBLIC_IP:-<relay-public-ip>}"
+
+say(){ printf '\033[0;36m▸\033[0m %s\n' "$*"; }
+ok(){  printf '\033[0;32m✓\033[0m %s\n' "$*"; }
+dns(){ printf '\033[1;33m➜ DNS:\033[0m %s\n' "$*"; }
+
+route_web(){
+  local sub="$1" port="$2" host="$1.$DOMAIN"
+  say "web route: https://$host -> node 127.0.0.1:$port"
+
+  # 1) SNI map on the relay (idempotent, before the `default` line)
+  ssh "$RELAY" "grep -q '^$host ' /etc/nginx/stream-sni-map.conf || \
+    sed -i '/^default/i $host $WG_IP:443;' /etc/nginx/stream-sni-map.conf; \
+    nginx -t && nginx -s reload" && ok "relay SNI map -> $WG_IP:443"
+
+  # 2) Caddy vhost on the node (idempotent), then hard-restart (reload silently fails).
+  #    Container + Caddyfile path default to the reference instance; override via env.
+  local cc="${LS_CADDY_CONTAINER:-yaya-caddy-1}" cf="${LS_NODE_CADDYFILE:-/home/yaya/docker/Caddyfile}"
+  ssh "$NODE" "F=\$(docker inspect -f '{{ range .Mounts }}{{ if eq .Destination \"/etc/caddy/Caddyfile\" }}{{ .Source }}{{ end }}{{ end }}' $cc 2>/dev/null); \
+    F=\${F:-$cf}; \
+    grep -q '^$host {' \"\$F\" || printf '\n$host {\n    bind $WG_IP\n    import secure_headers\n    reverse_proxy 127.0.0.1:$port\n}\n' >> \"\$F\"; \
+    docker restart $cc >/dev/null" && ok "node Caddy vhost added + Caddy restarted"
+
+  dns "A  $host  ->  $PUBIP   (DNS-only / grey-cloud)"
+}
+
+route_tcp(){
+  local name="$1" port="$2"
+  say "tcp route: *:$port -> node $WG_IP:$port ($name)"
+
+  # 1) firewall on the relay: live rule + persist in the hardening set
+  ssh "$RELAY" "nft list chain inet filter_hardening input 2>/dev/null | grep -q 'dport $port ' || \
+      nft add rule inet filter_hardening input tcp dport $port accept; \
+    grep -q '$port' /etc/nftables-hardening.conf || \
+      sed -i -E 's/(tcp dport \{ [0-9, ]+)\}/\1, $port }/' /etc/nftables-hardening.conf" \
+    && ok "relay firewall: $port/tcp open (live + persisted)"
+
+  # 2) nginx stream forward on the relay
+  ssh "$RELAY" "mkdir -p /etc/nginx/stream.d; \
+    printf 'server {\n    listen $port;\n    proxy_pass $WG_IP:$port;\n    proxy_connect_timeout 10s;\n    proxy_timeout 3600s;\n}\n' > /etc/nginx/stream.d/$name.conf; \
+    grep -q 'stream.d/\*.conf' /etc/nginx/nginx.conf || sed -i '/listen 8448;/a\    include /etc/nginx/stream.d/*.conf;' /etc/nginx/nginx.conf; \
+    nginx -t && nginx -s reload" && ok "relay stream forward $port -> $WG_IP:$port"
+
+  dns "A  $name.$DOMAIN  ->  $PUBIP   (DNS-only)"
+  # SRV hint only applies to Minecraft; guard with `if` so a non-match doesn't
+  # become the function's (and script's) non-zero exit status.
+  if [ "$name" = "minecraft" ] || [ "$port" = "25565" ]; then
+    dns "SRV _minecraft._tcp.play.$DOMAIN  0 0 $port  $name.$DOMAIN"
+  fi
+}
+
+case "${1:-}" in
+  web) [ $# -eq 3 ] || { echo "usage: ls-route web <sub> <local_port>"; exit 1; }; route_web "$2" "$3" ;;
+  tcp) [ $# -eq 3 ] || { echo "usage: ls-route tcp <name> <port>"; exit 1; };      route_tcp "$2" "$3" ;;
+  list)
+    say "relay SNI (web) routes:"; ssh "$RELAY" "grep -v '^#' /etc/nginx/stream-sni-map.conf" || true
+    say "relay TCP routes:";       ssh "$RELAY" "ls /etc/nginx/stream.d/ 2>/dev/null" || true
+    ;;
+  *) echo "usage: ls-route {web <sub> <port> | tcp <name> <port> | list}"; exit 1 ;;
+esac

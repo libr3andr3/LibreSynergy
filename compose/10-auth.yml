@@ -1,0 +1,85 @@
+# LibreSynergy — authentik SSO (served at https://${LS_AUTH} via the edge proxy)
+# Core service: always on, no compose profile.
+# Loopback port map (proven, do NOT renumber): 8300 -> authentik HTTP, 9443 -> authentik HTTPS.
+
+x-authentik-env-files: &authentik-env-files
+  - ${LS_SECRETS_DIR}/email.env         # SMTP creds (AUTHENTIK_EMAIL__*)
+  - ${LS_SECRETS_DIR}/auth-secrets.env  # AUTHENTIK_SECRET_KEY + DB passwords
+
+x-authentik-env: &authentik-env
+  AUTHENTIK_POSTGRESQL__HOST: postgresql
+  AUTHENTIK_POSTGRESQL__NAME: authentik
+  AUTHENTIK_POSTGRESQL__USER: authentik
+  AUTHENTIK_REDIS__HOST: redis
+  AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+  AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
+  TZ: ${LS_TZ:-UTC}
+
+x-authentik-volumes: &authentik-volumes
+  - ${LS_DATA_DIR}/authentik/media:/media
+  - ${LS_DATA_DIR}/authentik/certs:/certs
+  - ./templates:/templates:ro            # branded email/flow templates
+  - ./blueprints:/blueprints/custom:ro   # LibreSynergy blueprints (flows, providers)
+
+services:
+  postgresql:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - ${LS_SECRETS_DIR}/auth-secrets.env  # provides POSTGRES_PASSWORD
+    environment:
+      POSTGRES_DB: authentik
+      POSTGRES_USER: authentik
+      TZ: ${LS_TZ:-UTC}
+    volumes:
+      - ${LS_DATA_DIR}/authentik/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authentik -d authentik"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: --save 60 1 --loglevel warning  # persist sessions across restarts
+    environment:
+      TZ: ${LS_TZ:-UTC}
+    volumes:
+      - ${LS_DATA_DIR}/authentik/redis:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  server:
+    image: ghcr.io/goauthentik/server:2025.2.4
+    restart: unless-stopped
+    command: server
+    env_file: *authentik-env-files
+    environment:
+      <<: *authentik-env
+    volumes: *authentik-volumes
+    ports:
+      - "127.0.0.1:8300:9000"  # HTTP  — reverse-proxied by the edge as ${LS_AUTH}
+      - "127.0.0.1:9443:9443"  # HTTPS — embedded outpost / cert-bound flows
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    image: ghcr.io/goauthentik/server:2025.2.4
+    restart: unless-stopped
+    command: worker
+    env_file: *authentik-env-files
+    environment:
+      <<: *authentik-env
+    volumes: *authentik-volumes
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

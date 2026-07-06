@@ -1,0 +1,103 @@
+# LibreSynergy — BTCPay Server unit (optional, profile: "btcpay").
+#
+# Self-hosted Bitcoin checkout behind the existing edge: BTCPay web exposes
+# ONLY on 127.0.0.1:8500 (Caddy serves https://${LS_PAY}). Heavy: bitcoind
+# (pruned, ~15 GB) syncs for hours→days before invoices confirm — Stripe
+# (profile: payments) carries checkout meanwhile. Both settle into the same
+# Authentik-group entitlement path via the payments bridge.
+#
+#   Secrets: ./bin/ls init generates ${LS_SECRETS_DIR}/btcpay-server.env
+#            (bin/ls sources it so the ${BTCPAY_*} values below interpolate).
+#   Start:   ./bin/ls up btcpay
+#   Route:   ./bin/ls route web btcpay 8500
+#   Then:    create store + API key + webhook in the UI and fill
+#            ${LS_SECRETS_DIR}/btcpay.env for the payments bridge.
+#
+# Funds safety: use a WATCH-ONLY wallet — paste an xpub from a wallet whose
+# private keys never touch this server (Store → Wallet → "connect an existing
+# wallet"). Monero (XMR) is a BTCPay 2.x plugin, not a chain — install it in
+# the UI if wanted.
+
+services:
+  btcpay-postgres:
+    image: postgres:16-alpine
+    profiles: ["btcpay"]
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=btcpay
+      - POSTGRES_PASSWORD=${BTCPAY_PG_PASSWORD:?run ./bin/ls init to generate btcpay-server.env}
+      - POSTGRES_DB=btcpayserver
+    volumes:
+      - ${LS_DATA_DIR}/btcpay/postgres:/var/lib/postgresql/data
+      # First-init hook: BTCPay and NBXplorer each need their own database.
+      - ./templates/btcpay-initdb.sh:/docker-entrypoint-initdb.d/10-nbxplorer.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U btcpay"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bitcoind:
+    image: btcpayserver/bitcoin:30.2
+    profiles: ["btcpay"]
+    restart: unless-stopped
+    environment:
+      BITCOIN_NETWORK: mainnet
+      # P2P stays on the default 8333 inside the compose network (NBXplorer
+      # connects there); prune keeps the chain at ~15 GB on disk.
+      BITCOIN_EXTRA_ARGS: |
+        prune=15000
+        rpcport=43782
+        rpcbind=0.0.0.0:43782
+        rpcallowip=0.0.0.0/0
+        whitelist=0.0.0.0/0
+        maxmempool=300
+        rpcuser=${BTCPAY_BTC_RPC_USER:-btcpayrpc}
+        rpcpassword=${BTCPAY_BTC_RPC_PASSWORD:?run ./bin/ls init to generate btcpay-server.env}
+    volumes:
+      - ${LS_DATA_DIR}/btcpay/bitcoin:/data
+
+  nbxplorer:
+    image: nicolasdorier/nbxplorer:2.6.8
+    profiles: ["btcpay"]
+    restart: unless-stopped
+    depends_on:
+      btcpay-postgres:
+        condition: service_healthy
+    environment:
+      NBXPLORER_NETWORK: mainnet
+      NBXPLORER_CHAINS: "btc"
+      NBXPLORER_BTCRPCURL: http://bitcoind:43782/
+      NBXPLORER_BTCNODEENDPOINT: bitcoind:8333
+      NBXPLORER_BTCRPCUSER: ${BTCPAY_BTC_RPC_USER:-btcpayrpc}
+      NBXPLORER_BTCRPCPASSWORD: ${BTCPAY_BTC_RPC_PASSWORD}
+      NBXPLORER_POSTGRES: "User ID=btcpay;Password=${BTCPAY_PG_PASSWORD};Host=btcpay-postgres;Port=5432;Database=nbxplorer;"
+      NBXPLORER_BIND: 0.0.0.0:32838
+    volumes:
+      - ${LS_DATA_DIR}/btcpay/nbxplorer:/datadir
+      - ${LS_DATA_DIR}/btcpay/bitcoin:/data
+
+  btcpayserver:
+    image: btcpayserver/btcpayserver:2.4.0
+    profiles: ["btcpay"]
+    restart: unless-stopped
+    depends_on:
+      btcpay-postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8500:49392"
+    environment:
+      BTCPAY_HOST: ${LS_PAY:-btcpay.${LS_BASE_DOMAIN}}
+      BTCPAY_NETWORK: mainnet
+      BTCPAY_BIND: 0.0.0.0:49392
+      BTCPAY_ROOTPATH: /
+      BTCPAY_PROTOCOL: https
+      BTCPAY_CHAINS: "btc"
+      BTCPAY_BTCEXPLORERURL: http://nbxplorer:32838/
+      # NBXplorer cookie auth: its datadir is mounted read-only below.
+      BTCPAY_BTCEXPLORERCOOKIEFILE: /datadir-nbx/Main/.cookie
+      BTCPAY_POSTGRES: "User ID=btcpay;Password=${BTCPAY_PG_PASSWORD};Host=btcpay-postgres;Port=5432;Database=btcpayserver;"
+      BTCPAY_EXPLORERPOSTGRES: "User ID=btcpay;Password=${BTCPAY_PG_PASSWORD};Host=btcpay-postgres;Port=5432;Database=nbxplorer;"
+    volumes:
+      - ${LS_DATA_DIR}/btcpay/btcpay:/datadir
+      - ${LS_DATA_DIR}/btcpay/nbxplorer:/datadir-nbx:ro

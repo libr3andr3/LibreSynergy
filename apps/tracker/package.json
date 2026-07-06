@@ -1,0 +1,11 @@
+{
+  "name": "libresynergy-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sovereign WebTorrent tracker + course-VOD tooling for LibreSynergy",
+  "dependencies": {
+    "bittorrent-tracker": "^11.2.3",
+    "webtorrent": "^2.8.0"
+  }
+}

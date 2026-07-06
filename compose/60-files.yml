@@ -1,0 +1,38 @@
+# LibreSynergy v1.0 — file layer (optional; enable with: docker compose --profile files up -d)
+#
+# Filebrowser is the v1.0 file layer: a lightweight shared file manager over the
+# community data tree. Nextcloud is the roadmap upgrade when a community needs
+# full sync/sharing/collaboration.
+#
+# No secrets file needed: Filebrowser generates a random admin password on first
+# start and prints it once to the container log (docker compose logs filebrowser).
+
+services:
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    restart: unless-stopped
+    profiles: ["files"]
+    environment:
+      TZ: ${LS_TZ:-UTC}
+    # Loopback-only; the edge (Caddy) publishes it under the community domain.
+    ports:
+      - "127.0.0.1:8095:80"
+    volumes:
+      # Shared community root — deliberately NOT the operator's home directory.
+      - ${LS_DATA_DIR}/files:/srv
+      # Filebrowser's own state lives under the same tree so backups capture it.
+      # NOTE: db/ and config/ are subdirectories of the shared root, so they are
+      # visible inside /srv. filebrowser.db contains password hashes — after first
+      # login, add Filebrowser rules (Settings -> Global Settings -> Rules) to
+      # deny access to /db and /config for regular users. Host subpaths are kept
+      # as-is so an existing instance preserves its data (portability rule 7).
+      - ${LS_DATA_DIR}/files/db:/database
+      - ${LS_DATA_DIR}/files/config:/config
+    command:
+      [
+        "--root", "/srv",
+        "--address", "0.0.0.0",
+        "--port", "80",
+        "--database", "/database/filebrowser.db",
+        "--config", "/config/settings.json"
+      ]

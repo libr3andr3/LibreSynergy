@@ -1,0 +1,36 @@
+# ============================================================================
+#  LibreSynergy — ONE compose to run the entire community OS.
+#
+#  Composition over duplication: this `include`s each service's compose so the
+#  whole stack comes up with a single command, while each stays independently
+#  maintainable. Branding/domains/paths are driven by ./libresynergy.env
+#  (sourced + exported by ./bin/ls before compose runs).
+#
+#    ./bin/ls up                 # core: edge, auth, chat, learn, meet
+#    ./bin/ls up payments        # + checkout & entitlement sync
+#    ./bin/ls up stream          # + OwnCast livestreaming (RTMP in, HLS out)
+#    ./bin/ls up btcpay          # + BTCPay Server (self-hosted Bitcoin checkout)
+#    ./bin/ls up vod             # + WebTorrent tracker (peer-seeded course video)
+#    ./bin/ls up admin           # + the branding/sponsors/messaging dashboard
+#    ./bin/ls up games           # + the Minecraft PoC
+#    ./bin/ls up files           # + the file browser
+#
+#  Optional services are gated behind compose profiles
+#  (payments/stream/btcpay/vod/admin/games/files), so `up` with no profile
+#  brings up only the core community stack.
+# ============================================================================
+name: ${LS_PROJECT_NAME:-libresynergy}
+
+include:
+  - compose/00-edge.yml        # Caddy edge + landing + app shell   (core)
+  - compose/10-auth.yml        # Authentik SSO + postgres + redis   (core)
+  - compose/20-chat.yml        # Matrix Synapse + web client        (core)
+  - compose/30-learn.yml       # Frappe LMS                         (core)
+  - compose/40-meet.yml        # Jitsi webinars                     (core)
+  - compose/45-stream.yml      # OwnCast livestreaming              (profile: stream)
+  - compose/50-payments.yml    # checkout + membership sync + events (profile: payments)
+  - compose/55-btcpay.yml      # BTCPay Server bitcoin checkout     (profile: btcpay)
+  - compose/60-files.yml       # file browser                       (profile: files)
+  - compose/65-tracker.yml     # WebTorrent tracker (course VOD)    (profile: vod)
+  - compose/70-admin.yml       # admin dashboard                    (profile: admin)
+  - compose/games/minecraft.yml # Minecraft PoC                     (profile: games)

@@ -1,0 +1,36 @@
+# LibreSynergy — admin dashboard unit (optional, profile: "admin").
+#
+# One panel to run the community: branding (env + CSS tokens applied live),
+# sponsors (rendered on the landing page), site banner + Matrix announcements,
+# service health, launch checklist. Loopback 9110; Caddy serves
+# https://${LS_ADMIN} behind Authentik forward-auth (see the Caddyfile block),
+# and the app itself refuses requests without the admins group header.
+#
+# Operator supplies the app code at ./apps/admin/app.py (same convention as
+# the payments units). Full multi-service rebrand (Authentik blueprint, LMS,
+# Jitsi) stays a manual `apply-branding.sh` run — the dashboard marks it
+# pending in ${LS_DATA_DIR}/admin/apply-branding.requested.
+
+services:
+  admin:
+    image: python:3.12-slim
+    profiles: ["admin"]
+    restart: unless-stopped
+    network_mode: host            # binds loopback only; Caddy fronts ${LS_ADMIN}
+    working_dir: /app
+    command: ["python", "-u", "app.py"]
+    env_file:
+      - ${LS_SECRETS_DIR}/events.env    # ANNOUNCE_ROOM
+      - ${LS_SECRETS_DIR}/matrix.env    # MATRIX_HS_URL + bot token
+    environment:
+      LISTEN_HOST: 127.0.0.1
+      LISTEN_PORT: "9110"
+      LS_ENV_FILE: /ls/libresynergy.env
+      WWW_DIR: /www
+      STATE_DIR: /state
+      TZ: ${LS_TZ:-UTC}
+    volumes:
+      - ./apps/admin/app.py:/app/app.py:ro
+      - ..:/ls                          # repo root: libresynergy.env lives here
+      - ${LS_WWW_DIR}:/www
+      - ${LS_DATA_DIR}/admin:/state

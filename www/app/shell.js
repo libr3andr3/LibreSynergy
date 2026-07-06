@@ -67,7 +67,13 @@
       "act.1": "A new member just joined the community", "act.t1": "just now",
       "act.2": "New lesson published in the classroom", "act.t2": "today",
       "act.3": "The next live session is being scheduled", "act.t3": "this week",
-      "act.4": "Fresh rooms are open in chat", "act.t4": "this week"
+      "act.4": "Fresh rooms are open in chat", "act.t4": "this week",
+      "common.expand": "Expand", "common.open_full": "Open full app",
+      "panel.loading": "Loading…",
+      "panel.error_title": "Couldn’t load this panel",
+      "panel.error_body": "Something went wrong loading this. You can still open the full app in a new tab.",
+      "panel.open_full": "Open full app",
+      "chat.sso_failed": "Sign-in didn’t finish. Please try again."
     },
     es: {
       "a11y.skip": "Saltar al contenido",
@@ -120,7 +126,13 @@
       "act.1": "Un nuevo miembro se unió a la comunidad", "act.t1": "ahora mismo",
       "act.2": "Nueva lección publicada en el aula", "act.t2": "hoy",
       "act.3": "Se está programando la próxima sesión en vivo", "act.t3": "esta semana",
-      "act.4": "Hay salas nuevas abiertas en el chat", "act.t4": "esta semana"
+      "act.4": "Hay salas nuevas abiertas en el chat", "act.t4": "esta semana",
+      "common.expand": "Ampliar", "common.open_full": "Abrir la app completa",
+      "panel.loading": "Cargando…",
+      "panel.error_title": "No se pudo cargar este panel",
+      "panel.error_body": "Algo salió mal al cargar. Aún puedes abrir la app completa en una pestaña nueva.",
+      "panel.open_full": "Abrir la app completa",
+      "chat.sso_failed": "El inicio de sesión no se completó. Inténtalo de nuevo."
     },
     fr: {
       "a11y.skip": "Aller au contenu",
@@ -173,7 +185,13 @@
       "act.1": "Un nouveau membre vient de rejoindre la communauté", "act.t1": "à l’instant",
       "act.2": "Nouvelle leçon publiée dans la salle de classe", "act.t2": "aujourd’hui",
       "act.3": "La prochaine session en direct se prépare", "act.t3": "cette semaine",
-      "act.4": "De nouveaux salons sont ouverts dans le chat", "act.t4": "cette semaine"
+      "act.4": "De nouveaux salons sont ouverts dans le chat", "act.t4": "cette semaine",
+      "common.expand": "Agrandir", "common.open_full": "Ouvrir l’app complète",
+      "panel.loading": "Chargement…",
+      "panel.error_title": "Impossible de charger ce panneau",
+      "panel.error_body": "Le chargement a échoué. Vous pouvez tout de même ouvrir l’app complète dans un nouvel onglet.",
+      "panel.open_full": "Ouvrir l’app complète",
+      "chat.sso_failed": "La connexion n’a pas abouti. Réessayez."
     }
   };
 
@@ -231,7 +249,11 @@
   function show(name) {
     if (!VIEWS.includes(name)) name = "home";
     if (name === currentView) return;
+    const prev = currentView;
     currentView = name;
+
+    // Tear down the panel we are leaving (contract: unmount on view switch).
+    if (PANEL_VIEWS.includes(prev)) unmountPanel(prev);
 
     $$(".view").forEach((sec) => {
       sec.classList.toggle("is-active", sec.dataset.view === name);
@@ -242,7 +264,10 @@
     });
 
     const active = $(`.view[data-view="${name}"]`);
-    if (active) mountEmbed(active);
+    if (active) {
+      mountEmbed(active);                          // Meet keeps its long-lived iframe
+      if (PANEL_VIEWS.includes(name)) mountPanel(name); // Chat / Learn / Live panels
+    }
 
     document.title = name === "home" ? LS.brand : `${t("nav." + name)} · ${LS.brand}`;
     const content = $("#content");
@@ -255,6 +280,280 @@
     show(name);
   }
   window.addEventListener("hashchange", route);
+
+  /* =========================================================================
+     PANELS + shared ctx — the shell dynamically imports the native panel
+     modules (chat / courses / live) and mounts them into each view's
+     [data-panel-root]. It owns the Matrix SSO handshake and the expand chrome.
+     Panels receive ONE stable `ctx` object; its `.matrix` / `.user` are mutated
+     in place as auth resolves, so a panel that keeps a reference sees updates.
+
+     ctx = { lang, t, user, matrix, endpoints, onExpand, connectMatrix }
+       matrix        : { baseUrl, token, userId, room } | null
+       connectMatrix : () => Promise<matrix>   (SSO bounce; resolves once set)
+       onExpand      : (target) => void   target = URL | "#/view" | view name |
+                                          { url, fullbleed:true, title }
+     ========================================================================= */
+  const PANEL_VIEWS = ["chat", "learn", "live"];
+  const PANEL_MODULES = {
+    chat:  "./panels/chat.js",
+    learn: "./panels/courses.js",
+    live:  "./panels/live.js",
+  };
+  const panelModules = Object.create(null); // name -> loaded ES module (import cache)
+  const panelSeq = Object.create(null);     // name -> mount generation (race guard)
+
+  /* ---- Matrix config (white-label safe: derives from host if left unbaked) -- */
+  const MX_KEY = "ls_matrix";
+  const noPh = (v) => (typeof v === "string" && !v.includes("__") ? v : "");
+  function matrixBase() {
+    const u = noPh(LS.urls && LS.urls.matrix);
+    if (/^https?:\/\//i.test(u)) return u.replace(/\/+$/, "");
+    const h = location.hostname;
+    const base = h.startsWith("app.") ? h.slice(4) : h;
+    return `https://matrix.${base}`;
+  }
+  function matrixRoom() {
+    const r = noPh(LS.matrix && LS.matrix.room);
+    return r && (r[0] === "!" || r[0] === "#") ? r : null;
+  }
+  const MX_SSO_PROVIDER = noPh(LS.matrix && LS.matrix.ssoProvider) || "oidc-authentik";
+  const mxLocalpart = (id) => { const m = /^@([^:]+):/.exec(id || ""); return m ? m[1] : (id || ""); };
+
+  function loadMatrixSession() {
+    try {
+      const s = JSON.parse(localStorage.getItem(MX_KEY) || "null");
+      if (s && s.access_token && s.user_id) return s;
+    } catch (_) { /* corrupt / unavailable */ }
+    return null;
+  }
+  const matrixFromSession = (s) =>
+    s ? { baseUrl: matrixBase(), token: s.access_token, userId: s.user_id, room: matrixRoom() } : null;
+
+  /* ---- endpoints handed to panels ------------------------------------------- */
+  const endpoints = {
+    app: LS.urls.app, chat: LS.urls.chat, learn: LS.urls.learn,
+    meet: LS.urls.meet, live: LS.urls.live, premium: LS.urls.premium,
+    auth: LS.urls.auth, matrix: matrixBase(), ssoProvider: MX_SSO_PROVIDER,
+  };
+
+  /* ---- the single shared ctx ------------------------------------------------ */
+  const bootSession = loadMatrixSession();
+  const ctx = {
+    lang,
+    t,
+    endpoints,
+    user: bootSession
+      ? { id: bootSession.user_id, displayName: mxLocalpart(bootSession.user_id) }
+      : null,
+    matrix: matrixFromSession(bootSession),
+    connectMatrix,   // fn declarations below are hoisted
+    onExpand,
+  };
+
+  /* ---- Matrix SSO handshake ------------------------------------------------- */
+  let matrixExchange = null; // in-flight Promise while a return token is exchanged
+
+  function setMatrixConnected(session) {
+    ctx.matrix = matrixFromSession(session);
+    ctx.user = { id: session.user_id, displayName: mxLocalpart(session.user_id) };
+    // Let a mounted panel react without a full remount, if it listens.
+    document.dispatchEvent(new CustomEvent("ls:matrix", { detail: ctx.matrix }));
+  }
+
+  async function exchangeLoginToken(token) {
+    const res = await fetch(matrixBase() + "/_matrix/client/v3/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "m.login.token", token }),
+    });
+    if (!res.ok) throw new Error("matrix login " + res.status);
+    const data = await res.json();
+    const session = {
+      access_token: data.access_token, user_id: data.user_id,
+      device_id: data.device_id, home_server: data.home_server,
+    };
+    localStorage.setItem(MX_KEY, JSON.stringify(session));
+    setMatrixConnected(session);
+    return ctx.matrix;
+  }
+
+  function stripMatrixParams() {
+    const url = new URL(location.href);
+    let touched = false;
+    for (const k of ["mx_sso", "loginToken"]) {
+      if (url.searchParams.has(k)) { url.searchParams.delete(k); touched = true; }
+    }
+    if (touched) history.replaceState(null, "", url.pathname + url.search + url.hash);
+  }
+
+  // On return from the SSO bounce (?mx_sso=1&loginToken=…): swap the one-time
+  // token for a session, persist it, strip the params. Runs before route().
+  function handleMatrixReturn() {
+    const p = new URLSearchParams(location.search);
+    const token = p.get("loginToken");
+    if (p.get("mx_sso") === "1" && token) {
+      matrixExchange = exchangeLoginToken(token)
+        .catch((err) => { console.error("Matrix SSO exchange failed", err); toast(t("chat.sso_failed")); return null; })
+        .finally(() => { stripMatrixParams(); matrixExchange = null; });
+    } else if (p.has("mx_sso") || p.has("loginToken")) {
+      stripMatrixParams();
+    }
+  }
+
+  // connectMatrix(): resolved if already connected; hands back an in-flight
+  // return-exchange if one is running; otherwise starts the full-page SSO
+  // bounce back to the current view + ?mx_sso=1.
+  async function connectMatrix() {
+    if (ctx.matrix) return ctx.matrix;
+    if (matrixExchange) return matrixExchange;
+    let provider = MX_SSO_PROVIDER;
+    try {
+      const r = await fetch(matrixBase() + "/_matrix/client/v3/login", { cache: "no-store" });
+      if (r.ok) {
+        const j = await r.json();
+        const sso = (j.flows || []).find((f) => f.type === "m.login.sso");
+        const idp = sso && sso.identity_providers && sso.identity_providers[0];
+        if (idp && idp.id) provider = idp.id;
+      }
+    } catch (_) { /* fall back to the configured provider */ }
+    const back = new URL(location.href);
+    back.searchParams.set("mx_sso", "1"); // hash (current view) is preserved
+    const url = matrixBase() + "/_matrix/client/v3/login/sso/redirect/" +
+      encodeURIComponent(provider) + "?redirectUrl=" + encodeURIComponent(back.toString());
+    window.location.assign(url);
+    return new Promise(() => {}); // page unloads — never resolves in this context
+  }
+
+  /* ---- panel mount / unmount ------------------------------------------------ */
+  function panelParts(name) {
+    const view = $(`.view[data-view="${name}"]`);
+    return { view, root: view && $("[data-panel-root]", view) };
+  }
+
+  function panelFallback(root, view, kind) {
+    if (!root) return;
+    if (kind === "loading") {
+      root.innerHTML =
+        `<div class="panel-fallback glass" data-panel-fallback><span class="spinner" aria-hidden="true"></span></div>`;
+      return;
+    }
+    const wrap = document.createElement("div");
+    wrap.className = "panel-fallback glass";
+    wrap.setAttribute("data-panel-fallback", "");
+    const h = document.createElement("h2");
+    h.className = "panel-fallback-title"; h.textContent = t("panel.error_title");
+    const p = document.createElement("p");
+    p.className = "panel-fallback-body ls-muted"; p.textContent = t("panel.error_body");
+    const a = document.createElement("a");
+    a.className = "ls-btn ls-btn--brand";
+    a.href = (view && view.dataset.open) || LS.urls.app || "#";
+    a.target = "_blank"; a.rel = "noopener";
+    a.innerHTML = `<span></span><svg class="ico ico-sm" aria-hidden="true"><use href="#i-external"/></svg>`;
+    a.firstChild.textContent = t("panel.open_full");
+    wrap.append(h, p, a);
+    root.replaceChildren(wrap);
+  }
+
+  async function mountPanel(name) {
+    const modPath = PANEL_MODULES[name];
+    if (!modPath) return;
+    const { view, root } = panelParts(name);
+    if (!root) return;
+    const seq = (panelSeq[name] = (panelSeq[name] || 0) + 1);
+    panelFallback(root, view, "loading");
+    try {
+      const mod = panelModules[name] || (panelModules[name] = await import(modPath));
+      if (panelSeq[name] !== seq || currentView !== name) return; // navigated away mid-import
+      root.replaceChildren(); // drop the loading fallback before the panel renders
+      if (typeof mod.mount === "function") await mod.mount(root, ctx);
+      if (panelSeq[name] !== seq) return; // guard again across the mount await
+      if (view) view.dataset.panelState = "ready";
+    } catch (err) {
+      console.error("Panel failed to load:", name, err);
+      if (panelSeq[name] === seq) {
+        panelFallback(root, view, "error");
+        if (view) view.dataset.panelState = "error";
+      }
+    }
+  }
+
+  function unmountPanel(name) {
+    const mod = panelModules[name];
+    const { view, root } = panelParts(name);
+    panelSeq[name] = (panelSeq[name] || 0) + 1; // invalidate any in-flight mount
+    if (mod && typeof mod.unmount === "function" && root) {
+      try { mod.unmount(root); } catch (e) { console.error("panel unmount error", name, e); }
+    }
+    if (root) root.replaceChildren();
+    if (view) view.dataset.panelState = "";
+  }
+
+  /* ---- expand chrome -------------------------------------------------------- */
+  // Header "Expand ⤢" button: prefer the panel's own expand(ctx); else open the
+  // full app (view's data-open) in a new tab.
+  function expandActivePanel(name) {
+    const { view } = panelParts(name);
+    const mod = panelModules[name];
+    if (mod && typeof mod.expand === "function") {
+      try { mod.expand(ctx); return; } catch (e) { console.error("panel expand error", name, e); }
+    }
+    if (view && view.dataset.open) onExpand(view.dataset.open);
+  }
+
+  function onExpand(target) {
+    if (!target) return;
+    if (typeof target === "object") {
+      if (target.fullbleed || target.overlay) { openOverlay(target.url, target.title); return; }
+      target = target.url;
+    }
+    if (typeof target !== "string" || !target) return;
+    if (/^https?:\/\//i.test(target)) { window.open(target, "_blank", "noopener"); return; }
+    if (/^#\//.test(target)) { location.hash = target; return; }
+    if (VIEWS.includes(target)) { location.hash = "#/" + target; return; }
+    window.open(target, "_blank", "noopener");
+  }
+
+  /* full-bleed overlay iframe (optional same-hub fullscreen for a panel) */
+  const overlay = $("#expandOverlay");
+  const overlayFrame = $("#overlayFrame");
+  const overlayTitle = $("#overlayTitle");
+  const overlayNewtab = $("#overlayNewtab");
+  let overlayLastFocus = null;
+
+  function openOverlay(url, title) {
+    if (!overlay || !url) { if (url) window.open(url, "_blank", "noopener"); return; }
+    overlayLastFocus = document.activeElement;
+    if (overlayTitle) overlayTitle.textContent = title || LS.brand;
+    if (overlayNewtab) overlayNewtab.href = url;
+    overlayFrame.replaceChildren();
+    const f = document.createElement("iframe");
+    f.src = url;
+    f.title = title || LS.brand;
+    f.allow = "autoplay; fullscreen; picture-in-picture; camera; microphone; clipboard-write";
+    f.referrerPolicy = "origin";
+    f.setAttribute("allowfullscreen", "");
+    overlayFrame.appendChild(f);
+    overlay.hidden = false;
+    document.body.classList.add("ls-overlay-open");
+    const close = $("#overlayClose");
+    if (close) close.focus();
+  }
+  function closeOverlay() {
+    if (!overlay || overlay.hidden) return;
+    overlay.hidden = true;
+    overlayFrame.replaceChildren();
+    document.body.classList.remove("ls-overlay-open");
+    if (overlayLastFocus && overlayLastFocus.focus) overlayLastFocus.focus();
+  }
+  { const c = $("#overlayClose"); if (c) c.addEventListener("click", closeOverlay); }
+
+  function wireExpandButtons() {
+    $$("[data-expand]").forEach((btn) => {
+      const view = btn.closest(".view");
+      if (view) btn.addEventListener("click", () => expandActivePanel(view.dataset.view));
+    });
+  }
 
   /* =========================================================================
      LIVE status — polls OwnCast /api/status; drives the home hero, the rail
@@ -497,6 +796,7 @@
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); palette.hidden ? openPalette() : closePalette(); }
     else if (e.key === "/" && palette.hidden && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); openPalette(); }
     else if (e.key === "Escape") {
+      if (overlay && !overlay.hidden) closeOverlay();
       if (!palette.hidden) closePalette();
       if (iosSheet && !iosSheet.hidden) openIosSheet(false);
     }
@@ -531,6 +831,9 @@
      Boot
      ========================================================================= */
   applyI18n();
+  // Complete any SSO bounce (sets ctx.matrix) BEFORE the first route()/mount.
+  handleMatrixReturn();
+  wireExpandButtons();
   // Platform-correct shortcut hint in the search box
   const kbd = $(".searchbox-kbd");
   if (kbd && !/mac|iphone|ipad|ipod/i.test(navigator.platform || "")) kbd.textContent = "Ctrl K";

@@ -64,10 +64,14 @@ set -a; . "$ENV_FILE"; set +a
 : "${LS_APP:=app.${LS_BASE_DOMAIN}}"
 : "${LS_AUTH:=auth.${LS_BASE_DOMAIN}}"
 : "${LS_CHAT:=chat.${LS_BASE_DOMAIN}}"
+: "${LS_MATRIX:=matrix.${LS_BASE_DOMAIN}}"
 : "${LS_LEARN:=learn.${LS_BASE_DOMAIN}}"
 : "${LS_MEET:=meet.${LS_BASE_DOMAIN}}"
 : "${LS_LIVE:=live.${LS_BASE_DOMAIN}}"
 : "${LS_PREMIUM:=premium.${LS_BASE_DOMAIN}}"
+# Default community room for the app-shell chat panel. Empty is valid — the
+# panel then falls back gracefully (no room preselected).
+: "${LS_MATRIX_ROOM:=}"
 
 # ---- resolve www/ and data/ against the env file's directory -----------------
 resolve_dir(){ # $1 configured value (may be relative/empty), $2… fallbacks
@@ -115,7 +119,8 @@ say "tokens.css → $BRAND_DIR/tokens.css ($(write_if_changed "$BRAND_DIR/tokens
 # ---- 2) Render *.template.* files under www/ ---------------------------------
 head_ "[2/6] Templates"
 PLACEHOLDERS=(LS_BRAND_NAME LS_BRAND_TAGLINE LS_POWERED_BY LS_BASE_DOMAIN
-              LS_APP LS_CHAT LS_LEARN LS_MEET LS_LIVE LS_PREMIUM LS_AUTH
+              LS_APP LS_CHAT LS_MATRIX LS_MATRIX_ROOM LS_LEARN LS_MEET
+              LS_LIVE LS_PREMIUM LS_AUTH
               LS_COLOR_BRAND LS_COLOR_ACCENT LS_COLOR_INK)
 N_RENDERED=0; N_FRESH=0; LEFTOVER_WARN=""
 if [ -d "$WWW_DIR" ]; then

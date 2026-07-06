@@ -64,6 +64,7 @@
       <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.6L20 10l-6.1 1.4L12 17l-1.9-5.6L4 10l6.1-1.4L12 3Z"/></symbol>
       <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
       <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12.5 5 5L20 6.5"/></symbol>
+      <symbol id="i-expand" viewBox="0 0 24 24"><path d="M9 4H4v5M20 9V4h-5M15 20h5v-5M4 15v5h5"/></symbol>
     </defs>
   </svg>
 
@@ -209,65 +210,39 @@
         <p class="ls-poweredby shell-powered"><span data-i18n="common.powered_by">Powered by</span> __LS_POWERED_BY__ · <a href="https://__LS_BASE_DOMAIN__" target="_blank" rel="noopener">__LS_BASE_DOMAIN__</a></p>
       </section>
 
-      <!-- ---------- CHAT (in-shell panel, opens out) ---------- -->
-      <section class="view" id="view-chat" data-view="chat" data-open="https://__LS_CHAT__">
-        <div class="panel glass">
-          <div class="panel-copy">
-            <span class="qa-chip qa-chip--chat panel-chip"><svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg></span>
-            <h1 data-i18n="panel.chat_title">Your community chat</h1>
-            <p class="ls-muted panel-body" data-i18n="panel.chat_body">Every room, DM and thread lives on your own Matrix server — end-to-end encrypted. Nobody reads it but you.</p>
-            <ul class="panel-feats">
-              <li><svg class="ico ico-sm" aria-hidden="true"><use href="#i-check"/></svg><span data-i18n="panel.chat_f1">Encrypted rooms &amp; DMs</span></li>
-              <li><svg class="ico ico-sm" aria-hidden="true"><use href="#i-check"/></svg><span data-i18n="panel.chat_f2">Threads, reactions, media</span></li>
-              <li><svg class="ico ico-sm" aria-hidden="true"><use href="#i-check"/></svg><span data-i18n="panel.chat_f3">Your data, on your server</span></li>
-            </ul>
-            <div class="panel-cta">
-              <a class="ls-btn ls-btn--brand" href="https://__LS_CHAT__" target="_blank" rel="noopener">
-                <span data-i18n="panel.chat_cta">Open Chat</span>
-                <svg class="ico ico-sm" aria-hidden="true"><use href="#i-external"/></svg>
-              </a>
-              <p class="panel-note ls-faint" data-i18n="panel.opens">Opens in a new tab — your sign-in carries over.</p>
-            </div>
-          </div>
-          <div class="panel-art" aria-hidden="true">
-            <div class="mock mock-chat">
-              <span class="mock-bubble mock-bubble--in"></span>
-              <span class="mock-bubble mock-bubble--in" style="width:58%"></span>
-              <span class="mock-bubble mock-bubble--out"></span>
-              <span class="mock-bubble mock-bubble--in" style="width:42%"></span>
-              <span class="mock-bubble mock-bubble--out" style="width:64%"></span>
-            </div>
-          </div>
+      <!-- ---------- CHAT (native panel — panels/chat.js mounts into [data-panel-root]) ---------- -->
+      <section class="view view--panel" id="view-chat" data-view="chat" data-panel="chat"
+               data-module="./panels/chat.js" data-open="https://__LS_CHAT__">
+        <div class="panelview-bar">
+          <span class="qa-chip qa-chip--chat panelview-chip"><svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg></span>
+          <h1 class="panelview-title" data-i18n="nav.chat">Chat</h1>
+          <button class="ls-btn ls-btn--ghost ls-btn--sm panelview-expand" type="button" data-expand
+                  data-i18n-aria="common.expand" aria-label="Expand">
+            <span data-i18n="common.expand">Expand</span>
+            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-expand"/></svg>
+          </button>
+        </div>
+        <div class="panel-root" data-panel-root>
+          <!-- panels/chat.js renders here; the shell shows this fallback until it mounts -->
+          <div class="panel-fallback glass" data-panel-fallback><span class="spinner" aria-hidden="true"></span></div>
         </div>
       </section>
 
-      <!-- ---------- LEARN (in-shell panel, opens out) ---------- -->
-      <section class="view" id="view-learn" data-view="learn" data-open="https://__LS_LEARN__">
-        <div class="panel glass">
-          <div class="panel-copy">
-            <span class="qa-chip qa-chip--learn panel-chip"><svg class="ico" aria-hidden="true"><use href="#i-learn"/></svg></span>
-            <h1 data-i18n="panel.learn_title">The classroom</h1>
-            <p class="ls-muted panel-body" data-i18n="panel.learn_body">Structured courses from your community — video lessons, quizzes, and progress that follows you across devices.</p>
-            <ul class="panel-feats">
-              <li><svg class="ico ico-sm" aria-hidden="true"><use href="#i-check"/></svg><span data-i18n="panel.learn_f1">Courses &amp; cohorts</span></li>
-              <li><svg class="ico ico-sm" aria-hidden="true"><use href="#i-check"/></svg><span data-i18n="panel.learn_f2">Progress tracking</span></li>
-              <li><svg class="ico ico-sm" aria-hidden="true"><use href="#i-check"/></svg><span data-i18n="panel.learn_f3">Certificates</span></li>
-            </ul>
-            <div class="panel-cta">
-              <a class="ls-btn ls-btn--brand" href="https://__LS_LEARN__" target="_blank" rel="noopener">
-                <span data-i18n="panel.learn_cta">Open Learn</span>
-                <svg class="ico ico-sm" aria-hidden="true"><use href="#i-external"/></svg>
-              </a>
-              <p class="panel-note ls-faint" data-i18n="panel.opens">Opens in a new tab — your sign-in carries over.</p>
-            </div>
-          </div>
-          <div class="panel-art" aria-hidden="true">
-            <div class="mock mock-learn">
-              <span class="mock-row"><i class="mock-bar" style="--w:86%"></i></span>
-              <span class="mock-row"><i class="mock-bar" style="--w:54%"></i></span>
-              <span class="mock-row"><i class="mock-bar" style="--w:31%"></i></span>
-            </div>
-          </div>
+      <!-- ---------- LEARN (native panel — panels/courses.js mounts into [data-panel-root]) ---------- -->
+      <section class="view view--panel" id="view-learn" data-view="learn" data-panel="courses"
+               data-module="./panels/courses.js" data-open="https://__LS_LEARN__/lms/courses">
+        <div class="panelview-bar">
+          <span class="qa-chip qa-chip--learn panelview-chip"><svg class="ico" aria-hidden="true"><use href="#i-learn"/></svg></span>
+          <h1 class="panelview-title" data-i18n="nav.learn">Learn</h1>
+          <button class="ls-btn ls-btn--ghost ls-btn--sm panelview-expand" type="button" data-expand
+                  data-i18n-aria="common.expand" aria-label="Expand">
+            <span data-i18n="common.expand">Expand</span>
+            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-expand"/></svg>
+          </button>
+        </div>
+        <div class="panel-root" data-panel-root>
+          <!-- panels/courses.js renders here; the shell shows this fallback until it mounts -->
+          <div class="panel-fallback glass" data-panel-fallback><span class="spinner" aria-hidden="true"></span></div>
         </div>
       </section>
 
@@ -286,19 +261,22 @@
         </div>
       </section>
 
-      <!-- ---------- LIVE (embedded) ---------- -->
-      <section class="view view--embed" id="view-live" data-view="live"
-               data-embed="https://__LS_LIVE__/"
-               data-allow="fullscreen; autoplay; picture-in-picture; clipboard-write">
-        <div class="embed-bar">
-          <h1 class="embed-title" data-i18n="nav.live">Live</h1>
+      <!-- ---------- LIVE (native panel — panels/live.js mounts into [data-panel-root]) ---------- -->
+      <section class="view view--panel" id="view-live" data-view="live" data-panel="live"
+               data-module="./panels/live.js" data-open="https://__LS_LIVE__">
+        <div class="panelview-bar">
+          <span class="qa-chip qa-chip--live panelview-chip"><svg class="ico" aria-hidden="true"><use href="#i-live"/></svg></span>
+          <h1 class="panelview-title" data-i18n="nav.live">Live</h1>
           <span class="live-pill" data-live-pill hidden><span class="ls-dot ls-dot--live"></span> <span data-i18n="live.now">Live now</span></span>
-          <a class="iconbtn" href="https://__LS_LIVE__" target="_blank" rel="noopener" data-i18n-aria="common.new_tab" aria-label="Open in a new tab">
-            <svg class="ico" aria-hidden="true"><use href="#i-external"/></svg>
-          </a>
+          <button class="ls-btn ls-btn--ghost ls-btn--sm panelview-expand" type="button" data-expand
+                  data-i18n-aria="common.expand" aria-label="Expand">
+            <span data-i18n="common.expand">Expand</span>
+            <svg class="ico ico-sm" aria-hidden="true"><use href="#i-expand"/></svg>
+          </button>
         </div>
-        <div class="embed-wrap glass">
-          <div class="embed-loading" aria-hidden="true"><span class="spinner"></span></div>
+        <div class="panel-root" data-panel-root>
+          <!-- panels/live.js renders here; the shell shows this fallback until it mounts -->
+          <div class="panel-fallback glass" data-panel-fallback><span class="spinner" aria-hidden="true"></span></div>
         </div>
       </section>
 
@@ -376,6 +354,21 @@
     <button class="ls-btn ls-btn--ghost ls-btn--block" id="iosSheetClose" type="button" data-i18n="common.got_it">Got it</button>
   </div>
 
+  <!-- ======================= FULL-BLEED EXPAND OVERLAY ======================= -->
+  <!-- Optional same-hub fullscreen: a panel may call ctx.onExpand({url, fullbleed:true}). -->
+  <div class="overlay" id="expandOverlay" role="dialog" aria-modal="true" aria-label="Expanded view" hidden>
+    <div class="overlay-bar">
+      <span class="overlay-title" id="overlayTitle"></span>
+      <a class="iconbtn" id="overlayNewtab" href="#" target="_blank" rel="noopener" data-i18n-aria="common.new_tab" aria-label="Open in a new tab">
+        <svg class="ico" aria-hidden="true"><use href="#i-external"/></svg>
+      </a>
+      <button class="iconbtn" id="overlayClose" type="button" data-i18n-aria="common.close" aria-label="Close">
+        <svg class="ico" aria-hidden="true"><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <div class="overlay-frame" id="overlayFrame"></div>
+  </div>
+
   <!-- Toast -->
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
@@ -393,7 +386,14 @@
         meet:    "https://__LS_MEET__",
         live:    "https://__LS_LIVE__",
         premium: "https://__LS_PREMIUM__",
-        auth:    "https://__LS_AUTH__"
+        auth:    "https://__LS_AUTH__",
+        matrix:  "https://__LS_MATRIX__"
+      },
+      // Matrix (chat) wiring for the native panel + SSO bounce. room may be
+      // empty on a fresh operator — the chat panel then falls back gracefully.
+      matrix: {
+        room:        "__LS_MATRIX_ROOM__",
+        ssoProvider: "oidc-authentik"
       }
     };
   </script>

@@ -408,6 +408,51 @@ body.shell-body{
 }
 @keyframes sh-spin{ to{ transform:rotate(360deg);} }
 
+/* ---- native panel views (chat / learn / live mount here) --------------------------- */
+/* The shell owns the header chrome (chip + title + Expand ⤢); the panel module
+   renders into [data-panel-root]. Panels bring their own surface & CSS, so the
+   root is a bare, flexible mount point. */
+.view--panel.is-active{ display:flex; flex-direction:column; gap:var(--ls-4); }
+.panelview-bar{ display:flex; align-items:center; gap:var(--ls-3); flex-wrap:wrap; }
+.panelview-chip{ width:40px; height:40px; border-radius:12px; margin:0; flex:none; }
+.panelview-chip .ico{ width:20px; height:20px; }
+.panelview-title{ flex:1; margin:0; font-size:var(--ls-fs-5); letter-spacing:-.02em; min-width:0; }
+.panelview-expand{ flex:none; }
+.panelview-expand .ico-sm{ margin-left:2px; }
+.panel-root{ min-width:0; display:flex; flex-direction:column; }
+
+/* loading / error fallback shown until the module mounts (or if it can't) */
+.panel-fallback{
+  min-height:min(52vh, 420px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:var(--ls-3); text-align:center; padding:clamp(24px, 5vw, 48px);
+}
+.panel-fallback-title{ margin:0; font-size:var(--ls-fs-4); letter-spacing:-.02em; }
+.panel-fallback-body{ margin:0; max-width:42ch; font-size:var(--ls-fs-2); }
+
+/* ---- full-bleed expand overlay ----------------------------------------------------- */
+body.ls-overlay-open{ overflow:hidden; }
+.overlay{
+  position:fixed; inset:0; z-index:98;               /* above palette/sheet (95), below toast (100) */
+  display:flex; flex-direction:column;
+  background:color-mix(in srgb, var(--ls-ink) 90%, transparent);
+  backdrop-filter:blur(10px) saturate(1.2); -webkit-backdrop-filter:blur(10px) saturate(1.2);
+  animation:sh-fade .2s var(--ls-ease);
+  padding-top:env(safe-area-inset-top);
+}
+.overlay-bar{
+  display:flex; align-items:center; gap:var(--ls-2); flex:none;
+  height:var(--sh-topbar-h); padding:0 var(--sh-pad);
+  border-bottom:1px solid var(--sh-glass-line);
+  background:color-mix(in srgb, var(--ls-ink) 60%, transparent);
+}
+.overlay-title{
+  flex:1; min-width:0; font-weight:750; font-size:var(--ls-fs-3);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.overlay-frame{ position:relative; flex:1; min-height:0; }
+.overlay-frame iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+
 /* ---- bottom tab bar (mobile) ------------------------------------------------------- */
 .tabbar{
   position:fixed; left:0; right:0; bottom:0; z-index:var(--ls-z-nav);

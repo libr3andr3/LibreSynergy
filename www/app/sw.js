@@ -23,7 +23,7 @@
 
 'use strict';
 
-const SW_VERSION = '1.0.0'; /* ← bump this string to invalidate all caches */
+const SW_VERSION = '1.1.0'; /* ← bump this string to invalidate all caches */
 
 const PRECACHE = `ls-precache-${SW_VERSION}`;
 const RUNTIME = `ls-runtime-${SW_VERSION}`;
@@ -37,6 +37,15 @@ const SHELL_ASSETS = [
   '/app/',
   '/app/shell.css',
   '/app/shell.js',
+  /* Native panels dynamically imported by the shell (+ their optional CSS).
+     Best-effort: a panel without a .css simply 404s during precache and is
+     skipped (see Promise.allSettled in install). */
+  '/app/panels/chat.js',
+  '/app/panels/courses.js',
+  '/app/panels/live.js',
+  '/app/panels/chat.css',
+  '/app/panels/courses.css',
+  '/app/panels/live.css',
   OFFLINE_URL,
   '/brand/system.css',
   '/brand/tokens.css',

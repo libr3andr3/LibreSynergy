@@ -20,6 +20,7 @@ x-authentik-volumes: &authentik-volumes
   - ${LS_DATA_DIR}/authentik/certs:/certs
   - ./templates:/templates:ro            # branded email/flow templates
   - ./blueprints:/blueprints/custom:ro   # LibreSynergy blueprints (flows, providers)
+  - ./authentik-theme.css:/web/dist/custom.css:ro   # sovereignty-palette login/flow theme
 
 services:
   postgresql:

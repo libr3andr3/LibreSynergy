@@ -1,0 +1,22 @@
+/* LibreSynergy — Authentik theme · sovereignty palette (violet → gold) */
+:root{
+  --ak-accent:#7c6cff;
+  --ak-accent-versatile:#8a7bff;
+  --ak-dark-background:#0b0b12;
+  --ak-dark-background-light:#15151f;
+  --ak-dark-background-lighter:#1d1d2a;
+  --ak-dark-foreground:#eef0ff;
+  --ak-dark-foreground-darker:#9aa0b5;
+  --pf-global--primary-color--100:#7c6cff;
+  --pf-global--primary-color--200:#6a4cff;
+  --pf-global--active-color--100:#7c6cff;
+  --pf-global--link--Color:#ffc15e;
+  --pf-global--link--Color--hover:#ffd089;
+  --pf-global--BackgroundColor--dark-100:#0b0b12;
+  --pf-global--BackgroundColor--dark-200:#15151f;
+  --pf-global--BackgroundColor--dark-300:#1d1d2a;
+}
+.pf-c-button.pf-m-primary{background-color:#7c6cff}
+.pf-c-button.pf-m-primary:hover{background-color:#6a4cff}
+.pf-c-login__main,.pf-c-card{background-color:#15151f}
+.pf-c-login__main a,.pf-c-login__footer a{color:#ffc15e}

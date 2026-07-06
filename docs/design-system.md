@@ -38,12 +38,29 @@ Dark by default. Light mode ships via `:root[data-theme="light"]` plus a
 `prefers-color-scheme` fallback — style through the tokens, never hardcode a
 colour in a component, and both themes stay correct.
 
-## Third-party apps
+## Third-party apps — per-app theming
 
-Authentik, the Frappe classroom and Jitsi are separate applications; they can't
-share `system.css` directly but inherit the **palette and logo** through their
-own theming (driven by the same `libresynergy.env` values via
-`apply-branding.sh`), so the family resemblance carries across the whole stack.
+Each bundled app is a separate application with its own theming hook, so they
+can't share `system.css` directly. What they *can* share is the palette and
+brand, pushed in per app. Depth varies by what each app exposes:
+
+| App | Hook | Depth |
+|-----|------|-------|
+| **Authentik** (SSO login/signup) | `custom.css` mounted at `/web/dist/custom.css` — sets `--ak-accent`, PatternFly primary/link colors, dark ground. Ships as `compose/authentik-theme.css`. | **Full** — violet accent + dark surfaces |
+| **OwnCast** (livestream) | Admin API `POST /api/admin/config/appearance` with a map of `--theme-color-*` variables. | **Full** — palette applied to watch page + chat |
+| **Jitsi** (webinars) | Logo/watermark/favicon mounted over the image assets (see `compose/40-meet.yml`). | **Brand** — logo + favicon; colours stay Jitsi default |
+| **Cinny** (chat) | Folds design system; colours are computed, not exposed as simple tokens. | **Brand** — logo/favicon; ships a usable dark theme |
+| **Frappe LMS** (classroom) | App name + footer via Website Settings; the lesson UI is a built SPA. | **Brand** — name/logo; SPA colours default |
+| **BTCPay** (crypto checkout) | Server Settings → Theme (custom theme CSS URI). | **Operator** — set in the BTCPay admin UI (needs the store admin login) |
+
+The two highest-visibility surfaces — the **login** everyone passes through and
+the **public livestream** page — are themed in full. The rest carry the logo and
+favicon so the family resemblance holds; deep colour theming there is fragile or
+gated behind an app's own admin, so it's left as an operator choice rather than
+forced.
+
+`compose/authentik-theme.css` mirrors the default palette; for a custom brand,
+regenerate it from your `libresynergy.env` colours (or edit the six hex values).
 
 ## Reference
 

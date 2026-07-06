@@ -20,12 +20,15 @@ services:
     network_mode: host            # binds loopback only; Caddy fronts ${LS_PREMIUM}
     profiles: ["payments"]
     working_dir: /app
-    command: ["python", "-u", "app.py"]
+    # segno (pure-python QR) is optional — installed for the Solana USDC pay QR;
+    # the `|| true` keeps the bridge booting even if the install can't run.
+    command: ["sh", "-c", "pip install --quiet --no-cache-dir --disable-pip-version-check segno 2>/dev/null || true; exec python -u app.py"]
     env_file:
       - ${LS_SECRETS_DIR}/authentik.env   # Authentik API token (example ships with the auth unit)
       - ${LS_SECRETS_DIR}/bridge.env
       - ${LS_SECRETS_DIR}/stripe.env
       - ${LS_SECRETS_DIR}/btcpay.env
+      - ${LS_SECRETS_DIR}/solana.env      # USDC-on-Solana (empty by default = feature off)
     environment:
       - TZ=${LS_TZ:-UTC}
     volumes:

@@ -34,7 +34,7 @@ This is built for two people working together:
 | Webinars and video meetings | [Jitsi Meet](https://jitsi.org) | `https://meet.<your-domain>` |
 | Livestreaming with live chat *(profile `stream`)* | [OwnCast](https://owncast.online) | `https://live.<your-domain>` |
 | Peer-seeded course video — learners seed to each other *(profile `vod`)* | WebTorrent + own tracker | `https://tracker.<your-domain>` |
-| Payments & premium — card **and** crypto *(profile `payments`/`btcpay`)* | Stripe + [BTCPay](https://btcpayserver.org) (BTC + Monero) → membership sync | `https://premium.<your-domain>` |
+| Payments & premium — card **and** crypto *(profile `payments`/`btcpay`)* | Stripe + [BTCPay](https://btcpayserver.org) (BTC + Monero) + **USDC on Solana** → membership sync | `https://premium.<your-domain>` |
 | Admin dashboard: branding, sponsors, announcements *(profile `admin`)* | first-party, behind SSO | `https://admin.<your-domain>` |
 | File sharing *(optional)* | Filebrowser | profile `files` |
 | Community game server *(optional)* | Minecraft | profile `games` |
@@ -90,6 +90,7 @@ measured overhead: [docs/architecture-mesh.md](docs/architecture-mesh.md) and
 - [The mesh](docs/architecture-mesh.md) — web-onboarding → P2P funnel, content signing, measured crypto overhead
 - [Course VOD layer](docs/peertube-layer.md) — PeerTube-style peer-seeded lessons + browser player embed
 - [Livestreaming](docs/livestreaming.md) — OwnCast setup, OBS, hardening
+- [USDC on Solana](docs/solana-usdc.md) — non-custodial stablecoin checkout via Solana Pay
 - [Add a service](docs/add-a-service.md) — route any new web or TCP service through the stack
 - [Operations](docs/operations.md) — backups, updates, secrets rotation, known gotchas
 - [Security](docs/security.md) — what is enforced, and what risks remain

@@ -1,0 +1,210 @@
+# =============================================================================
+# edge-hub.caddy — discoverability + performance edge for the two hub surfaces:
+#   • the public landing site on the root domain  ({$LS_BASE_DOMAIN})
+#   • the installable PWA shell on the app host   ({$LS_APP})
+#
+# This file REPLACES two site blocks in the root Caddyfile:
+#     {$LS_BASE_DOMAIN} { ... }        (landing + first-party endpoints)
+#     {$LS_APP} { ... }                (community web app, static)
+# Caddy refuses duplicate site addresses, so those two blocks must be removed
+# (or commented out) before this file is imported.
+#
+# HOW IT SLOTS INTO THE EXISTING CADDYFILE
+#   1. Mount this file into the caddy container — add to the caddy service
+#      volumes in compose/00-edge.yml:
+#          - ../routing/templates/edge-hub.caddy:/etc/caddy/edge-hub.caddy:ro
+#   2. In the root Caddyfile, delete/comment the {$LS_BASE_DOMAIN} and
+#      {$LS_APP} site blocks, then add ONE line at the TOP LEVEL of the file
+#      (outside any block, e.g. right after the (secure_headers) snippet):
+#          import /etc/caddy/edge-hub.caddy
+#   3. Validate, then reload (zero-downtime):
+#          docker compose exec caddy caddy validate --config /etc/caddy/Caddyfile
+#          docker compose exec caddy caddy reload   --config /etc/caddy/Caddyfile
+#
+# All {$LS_*} placeholders are environment variables injected by
+# compose/00-edge.yml — identical convention to the root Caddyfile.
+# Requires Caddy >= 2.7 (heredoc syntax); the stack pins caddy:2-alpine,
+# which satisfies this.
+# =============================================================================
+
+# ---- shared: security headers for hub pages ---------------------------------
+# Modern frame policy: CSP frame-ancestors REPLACES X-Frame-Options here, so
+# first-party subdomains may frame the hub pages (X-Frame-Options SAMEORIGIN
+# would forbid that — subdomains are different origins). Note the shell
+# embedding meet./live. needs no grant in THIS block: framing permission lives
+# on the EMBEDDED side, and the {$LS_MEET}/{$LS_LIVE} vhosts in the root
+# Caddyfile already send frame-ancestors allowing {$LS_APP}/{$LS_BASE_DOMAIN}.
+(hub_headers) {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Same-site framing only: the hub may be embedded by itself and by
+        # first-party subdomains (chat/learn widgets, kiosk mode, …).
+        Content-Security-Policy "frame-ancestors 'self' https://{$LS_BASE_DOMAIN} https://*.{$LS_BASE_DOMAIN}"
+        # Delegate camera/mic/screen-share ONLY to the embedded Jitsi frame,
+        # fullscreen+autoplay to Jitsi and the OwnCast player; deny the rest.
+        Permissions-Policy "camera=(self \"https://{$LS_MEET}\"), microphone=(self \"https://{$LS_MEET}\"), display-capture=(self \"https://{$LS_MEET}\"), fullscreen=(self \"https://{$LS_MEET}\" \"https://{$LS_LIVE}\"), autoplay=(self \"https://{$LS_MEET}\" \"https://{$LS_LIVE}\"), geolocation=()"
+        -Server
+        -X-Frame-Options
+    }
+}
+
+# ---- shared: brand assets (/brand/*) ----------------------------------------
+# Brand assets are referenced absolutely (/brand/logo.svg, /brand/system.css,
+# /brand/tokens.css) by every hub page, but live in the www ROOT — not under
+# the per-site root — so this handle pins its own root.
+#
+# Caching: images/icons/fonts are effectively fingerprint-stable → one year,
+# immutable. The stylesheets are deliberately EXCLUDED from immutable:
+# apply-branding.sh regenerates tokens.css IN PLACE on rebrand (the core
+# white-label feature), and an immutable copy would pin returning visitors to
+# the old palette for a year.
+(hub_brand_assets) {
+    handle /brand/* {
+        root * /srv/www
+        @brand_css path *.css
+        header @brand_css Cache-Control "public, max-age=3600, must-revalidate"
+        @brand_frozen not path *.css
+        header @brand_frozen Cache-Control "public, max-age=31536000, immutable"
+        file_server
+    }
+}
+
+# ---- shared: PWA plumbing (parameterized on path) ----------------------------
+# Service worker: never cached — browsers re-fetch it to detect app updates,
+# a stale SW strands installed users on an old shell. Service-Worker-Allowed
+# lets it claim scope "/" even when served from a subpath.
+(hub_sw) {
+    handle {args[0]} {
+        header Cache-Control "no-cache"
+        header Service-Worker-Allowed "/"
+        file_server
+    }
+}
+
+# Web app manifest: .webmanifest is missing from the container's MIME table,
+# so set the type explicitly; short cache so rebrands (name/colors/icons)
+# reach installed users quickly.
+(hub_manifest) {
+    handle {args[0]} {
+        header Content-Type "application/manifest+json"
+        header Cache-Control "public, max-age=300, must-revalidate"
+        file_server
+    }
+}
+
+# =============================================================================
+# ROOT DOMAIN — public landing (SEO surface) + first-party endpoints
+# =============================================================================
+{$LS_BASE_DOMAIN} {
+    bind {$LS_WG_IP:10.0.0.2}
+    import hub_headers
+    encode zstd gzip
+    root * /srv/www
+
+    # ---- first-party endpoints (carried over from the original root block
+    # in the Caddyfile — keep in sync if those helpers move) ----
+    handle /jobs/submit {
+        reverse_proxy 127.0.0.1:9091
+    }
+    handle /join {
+        reverse_proxy 127.0.0.1:9092
+    }
+    handle /api/* {
+        reverse_proxy 127.0.0.1:9102
+    }
+
+    # ---- discoverability: robots.txt + sitemap.xml ----
+    # Both are rendered from *.template.* sources by apply-branding.sh into
+    # the www root. Cached for an hour — crawlers re-check them often.
+    handle /robots.txt {
+        header Cache-Control "public, max-age=3600"
+        file_server
+    }
+    handle /sitemap.xml {
+        header Cache-Control "public, max-age=3600"
+        file_server
+    }
+
+    # ---- PWA files (the shell is also reachable under /app/ on this host,
+    # since the www root contains the app/ directory) ----
+    import hub_sw /app/sw.js
+    import hub_manifest /app/manifest.webmanifest
+
+    # ---- shared brand assets ----
+    import hub_brand_assets
+
+    # ---- everything else: the landing site ----
+    # NOTE: @page/@assets are deliberately DISJOINT (Caddy sorts same-name
+    # directives by matcher, so "default first, override later" is unreliable).
+    handle {
+        # Page assets: a day is plenty (bump ?v= query on redesigns).
+        @assets path *.css *.js *.mjs *.json *.svg *.png *.jpg *.jpeg *.webp *.avif *.ico *.woff *.woff2 *.mp4 *.webm
+        header @assets Cache-Control "public, max-age=86400"
+        # HTML (and anything unmatched): short cache so content/brand updates
+        # go live in minutes, not days.
+        @page not path *.css *.js *.mjs *.json *.svg *.png *.jpg *.jpeg *.webp *.avif *.ico *.woff *.woff2 *.mp4 *.webm
+        header @page Cache-Control "public, max-age=300, must-revalidate"
+        file_server {
+            # never serve unrendered placeholder sources
+            hide *.template.*
+        }
+    }
+}
+
+# =============================================================================
+# APP HOST — the installable PWA shell (static, gated internals)
+# =============================================================================
+{$LS_APP} {
+    bind {$LS_WG_IP:10.0.0.2}
+    import hub_headers
+    encode zstd gzip
+    root * /srv/www/app
+
+    # The shell is app internals — the landing page is the SEO surface.
+    # Belt (robots.txt below) and braces (header-level directive):
+    header X-Robots-Tag "noindex"
+
+    # Deny-all robots for this host, served straight from the edge so no file
+    # needs to exist in www/app/. (Heredoc: Caddy >= 2.7.)
+    handle /robots.txt {
+        header Content-Type "text/plain; charset=utf-8"
+        header Cache-Control "public, max-age=3600"
+        respond <<ROBOTS
+        User-agent: *
+        Disallow: /
+        ROBOTS 200
+    }
+
+    # ---- PWA plumbing: manifest + service worker at the origin root ----
+    import hub_sw /sw.js
+    import hub_manifest /manifest.webmanifest
+
+    # ---- shared brand assets ----
+    import hub_brand_assets
+
+    # ---- the shell itself ----
+    # @page/@assets kept disjoint — same reasoning as the landing block.
+    handle {
+        @assets path *.css *.js *.mjs *.json *.svg *.png *.jpg *.jpeg *.webp *.avif *.ico *.woff *.woff2
+        header @assets Cache-Control "public, max-age=86400"
+        @page not path *.css *.js *.mjs *.json *.svg *.png *.jpg *.jpeg *.webp *.avif *.ico *.woff *.woff2
+        header @page Cache-Control "public, max-age=300, must-revalidate"
+        # Deep links (client-side routes) render the shell.
+        try_files {path} {path}/ /index.html
+        file_server {
+            hide *.template.*
+        }
+    }
+}
+
+# =============================================================================
+# OPTIONAL: canonical-host redirect for www.
+# Uncomment after creating BOTH the DNS record and the relay SNI map entry
+# for www (see docs/discoverability.md → DNS follow-ups).
+# =============================================================================
+# www.{$LS_BASE_DOMAIN} {
+#     bind {$LS_WG_IP:10.0.0.2}
+#     redir https://{$LS_BASE_DOMAIN}{uri} permanent
+# }

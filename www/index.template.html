@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <title>__LS_BRAND_NAME__ — __LS_BRAND_TAGLINE__</title>
+  <meta name="description" content="__LS_BRAND_TAGLINE__. Chat, learn, meet and go live on __LS_BRAND_NAME__ — a community you actually own. Self-hosted, private, no Big Tech.">
+  <link rel="canonical" href="https://__LS_BASE_DOMAIN__/">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="__LS_BRAND_NAME__">
+  <meta property="og:title" content="__LS_BRAND_NAME__ — __LS_BRAND_TAGLINE__">
+  <meta property="og:description" content="Chat, learn, meet and go live on __LS_BRAND_NAME__ — a community you actually own. Self-hosted, private, no Big Tech.">
+  <meta property="og:url" content="https://__LS_BASE_DOMAIN__/">
+  <meta property="og:image" content="https://__LS_BASE_DOMAIN__/brand/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="__LS_BRAND_NAME__ — __LS_BRAND_TAGLINE__">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="es_ES">
+  <meta property="og:locale:alternate" content="fr_FR">
+
+  <!-- Twitter / X card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="__LS_BRAND_NAME__ — __LS_BRAND_TAGLINE__">
+  <meta name="twitter:description" content="Chat, learn, meet and go live on __LS_BRAND_NAME__ — a community you actually own. Self-hosted, private, no Big Tech.">
+  <meta name="twitter:image" content="https://__LS_BASE_DOMAIN__/brand/og.png">
+
+  <!-- Installability (the landing itself is add-to-home-screen friendly) -->
+  <link rel="manifest" href="/app/manifest.webmanifest">
+  <meta name="theme-color" content="#0b0b12" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f6fb" media="(prefers-color-scheme: light)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="__LS_BRAND_NAME__">
+
+  <!-- Brand assets -->
+  <link rel="icon" href="/brand/favicon.ico" sizes="any">
+  <link rel="icon" href="/brand/icon-512.png" type="image/png" sizes="512x512">
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+  <link rel="dns-prefetch" href="https://__LS_LIVE__">
+  <link rel="preconnect" href="https://__LS_LIVE__" crossorigin>
+
+  <!-- Structured data: Organization + WebSite -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://__LS_BASE_DOMAIN__/#org",
+        "name": "__LS_BRAND_NAME__",
+        "url": "https://__LS_BASE_DOMAIN__/",
+        "logo": "https://__LS_BASE_DOMAIN__/brand/icon-512.png",
+        "slogan": "__LS_BRAND_TAGLINE__",
+        "email": "mailto:hello@__LS_BASE_DOMAIN__"
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://__LS_BASE_DOMAIN__/#site",
+        "name": "__LS_BRAND_NAME__",
+        "url": "https://__LS_BASE_DOMAIN__/",
+        "description": "__LS_BRAND_TAGLINE__ — chat, learn, meet and go live on a platform the community owns.",
+        "inLanguage": ["en", "es", "fr"],
+        "publisher": { "@id": "https://__LS_BASE_DOMAIN__/#org" }
+      }
+    ]
+  }
+  </script>
+
+  <!-- Brand contract: design system first, per-operator palette second -->
+  <link rel="stylesheet" href="/brand/system.css">
+  <link rel="stylesheet" href="/brand/tokens.css">
+  <link rel="stylesheet" href="/landing.css">
+</head>
+<body class="ls">
+
+<a class="ln-skip" href="#main" data-i18n="misc.skip">Skip to content</a>
+
+<header class="ls-nav ln-nav" id="lnNav">
+  <a class="ln-brand" href="/" aria-label="__LS_BRAND_NAME__ — home">
+    <img class="ls-logo" src="/brand/logo.svg" alt="" width="30" height="30">
+    <span class="ln-brand-name">__LS_BRAND_NAME__</span>
+  </a>
+  <nav class="ln-nav-links" aria-label="Sections">
+    <a href="#story" data-i18n="nav.story">Sovereignty</a>
+    <a href="#inside" data-i18n="nav.inside">What&rsquo;s inside</a>
+    <a href="#live" data-i18n="nav.live">Live</a>
+  </nav>
+  <span class="ls-spacer"></span>
+  <div class="ls-lang" role="group" aria-label="Language">
+    <a href="#" data-lang="en" aria-current="true">EN</a>
+    <a href="#" data-lang="es">ES</a>
+    <a href="#" data-lang="fr">FR</a>
+  </div>
+  <a class="ls-btn ls-btn--ghost ls-btn--sm ln-nav-signin" href="https://__LS_AUTH__" data-i18n="nav.signin">Sign in</a>
+  <a class="ls-btn ls-btn--brand ls-btn--sm" href="#join" data-i18n="nav.join">Join</a>
+</header>
+
+<main id="main">
+
+  <!-- ======================= HERO ======================= -->
+  <section class="ln-hero" id="top" aria-labelledby="heroTitle">
+    <div class="ln-aurora" id="aurora" aria-hidden="true">
+      <i class="ln-blob ln-blob--a"></i>
+      <i class="ln-blob ln-blob--b"></i>
+      <i class="ln-blob ln-blob--c"></i>
+    </div>
+    <div class="ln-gridlines" aria-hidden="true"></div>
+    <div class="ln-noise" aria-hidden="true"></div>
+
+    <div class="ln-wrap ln-hero-inner">
+      <p class="ln-eyebrow reveal">
+        <span class="ls-dot ls-dot--ok" aria-hidden="true"></span>
+        <span data-i18n="hero.kicker">Your community &middot; your rules &middot; your server</span>
+      </p>
+
+      <h1 class="ln-display reveal" id="heroTitle" style="--d:.08s">
+        <span class="ln-display-line">__LS_BRAND_TAGLINE__</span>
+        <span class="ln-display-line ln-gradient" data-i18n="hero.sovereign">Become sovereign.</span>
+      </h1>
+
+      <p class="ln-sub reveal" style="--d:.16s" data-i18n="hero.sub">__LS_BRAND_NAME__ is a whole digital world — chat, classes, meetings, livestreams — running on hardware no tech giant controls. Install it. Own it. Live in it.</p>
+
+      <form class="ln-join reveal" style="--d:.24s" action="https://__LS_PREMIUM__/join" method="post" accept-charset="utf-8">
+        <label class="ln-sr" for="joinEmailHero" data-i18n="hero.emailLabel">Email address</label>
+        <input class="ls-input ln-join-input" id="joinEmailHero" type="email" name="email"
+               autocomplete="email" inputmode="email" required
+               placeholder="you@somewhere.earth" data-i18n-ph="hero.emailPh">
+        <input type="hidden" name="source" value="landing">
+        <input type="hidden" name="lang" value="en" data-lang-field>
+        <button class="ls-btn ls-btn--brand ln-join-btn" type="submit">
+          <span data-i18n="hero.cta">Become sovereign</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+
+      <div class="ln-hero-actions reveal" style="--d:.32s">
+        <button class="ls-btn ls-btn--ghost" type="button" data-install>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M12 6.5v6m0 0-2.4-2.4M12 12.5l2.4-2.4"/><path d="M10.5 18.5h3"/></svg>
+          <span data-i18n="hero.install">Install the app</span>
+        </button>
+        <p class="ln-fineprint" data-i18n="hero.note">Free to join &middot; no ads, no trackers &middot; your data stays yours</p>
+      </div>
+
+      <div class="ln-proof reveal" style="--d:.4s">
+        <span class="ln-avatars" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i class="ln-avatar-you">+</i>
+        </span>
+        <span class="ln-proof-text" data-i18n="hero.proof">People around the world are moving in</span>
+        <a class="ln-livepill" href="https://__LS_LIVE__" hidden data-live-pill>
+          <span class="ls-dot ls-dot--live" aria-hidden="true"></span>
+          <span data-live-pill-text>LIVE</span>
+        </a>
+      </div>
+    </div>
+
+    <a class="ln-scrollcue" href="#story" aria-label="Scroll to next section">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </a>
+  </section>
+
+  <!-- ======================= MARQUEE ======================= -->
+  <div class="ln-marquee" aria-hidden="true">
+    <div class="ln-marquee-track">
+      <span>Chat</span><b>&#10022;</b><span>Learn</span><b>&#10022;</b><span>Meet</span><b>&#10022;</b><span>Live</span><b>&#10022;</b><span>Premium</span><b>&#10022;</b><span data-i18n="marquee.word">Sovereign</span><b>&#10022;</b>
+      <span>Chat</span><b>&#10022;</b><span>Learn</span><b>&#10022;</b><span>Meet</span><b>&#10022;</b><span>Live</span><b>&#10022;</b><span>Premium</span><b>&#10022;</b><span data-i18n="marquee.word">Sovereign</span><b>&#10022;</b>
+      <span>Chat</span><b>&#10022;</b><span>Learn</span><b>&#10022;</b><span>Meet</span><b>&#10022;</b><span>Live</span><b>&#10022;</b><span>Premium</span><b>&#10022;</b><span data-i18n="marquee.word">Sovereign</span><b>&#10022;</b>
+    </div>
+  </div>
+
+  <!-- ======================= SOVEREIGNTY STORY ======================= -->
+  <section class="ln-section ln-story" id="story" aria-labelledby="storyTitle">
+    <div class="ln-wrap ln-story-grid">
+      <div class="ln-story-lead">
+        <p class="ls-kicker reveal" data-i18n="story.kicker">The sovereignty story</p>
+        <h2 class="ln-h2 reveal" id="storyTitle" style="--d:.08s" data-i18n="story.title">Big Tech rents you a feed. We hand you the keys.</h2>
+        <p class="ln-lede reveal" style="--d:.16s" data-i18n="story.lede">Every platform you &ldquo;use for free&rdquo; owns your words, your audience and your attention. __LS_BRAND_NAME__ flips the deal: the whole platform runs on community hardware, in the open, for you.</p>
+      </div>
+      <ul class="ln-pillars">
+        <li class="ln-pillar reveal">
+          <svg class="ln-pillar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9m0-9L4 7.5"/></svg>
+          <h3 data-i18n="story.p1t">You own it</h3>
+          <p data-i18n="story.p1d">Every message, course and stream lives on community machines — not in a corporate cloud. If we vanished tomorrow, your world keeps running.</p>
+        </li>
+        <li class="ln-pillar reveal" style="--d:.1s">
+          <svg class="ln-pillar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M7 8V6a5 5 0 0 1 10 0v2"/><circle cx="12" cy="14" r="1.6"/></svg>
+          <h3 data-i18n="story.p2t">Self-hosted, fully</h3>
+          <p data-i18n="story.p2d">One box, one config, a whole platform — open source from the login screen to the video pipeline, portable to any hardware on earth.</p>
+        </li>
+        <li class="ln-pillar reveal" style="--d:.2s">
+          <svg class="ln-pillar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.5 5.5l13 13"/></svg>
+          <h3 data-i18n="story.p3t">No Big Tech</h3>
+          <p data-i18n="story.p3d">No surveillance ads, no algorithmic overlords, no selling your attention. The feed serves you — not shareholders.</p>
+        </li>
+      </ul>
+    </div>
+    <div class="ln-wrap">
+      <dl class="ln-stats reveal">
+        <div class="ln-stat"><dt>100%</dt><dd data-i18n="story.s1">yours — code, data, keys</dd></div>
+        <div class="ln-stat"><dt>0</dt><dd data-i18n="story.s2">ads or trackers, ever</dd></div>
+        <div class="ln-stat"><dt>1</dt><dd data-i18n="story.s3">login for everything</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ======================= WHAT'S INSIDE ======================= -->
+  <section class="ln-section ln-inside" id="inside" aria-labelledby="insideTitle">
+    <div class="ln-wrap">
+      <p class="ls-kicker reveal" data-i18n="inside.kicker">What&rsquo;s inside</p>
+      <h2 class="ln-h2 reveal" id="insideTitle" style="--d:.08s" data-i18n="inside.title">One install. A whole world.</h2>
+      <p class="ln-lede reveal" style="--d:.16s" data-i18n="inside.lede">Five spaces, one identity. Sign in once and move freely.</p>
+
+      <div class="ln-cards">
+        <a class="ln-card ln-card--chat reveal" href="https://__LS_CHAT__">
+          <span class="ln-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a7.5 7.5 0 0 1-7.5 7.5c-1.2 0-2.4-.3-3.4-.8L4 20l1.8-4.1A7.5 7.5 0 1 1 21 11.5z"/><path d="M9 11.5h.01M13.5 11.5h.01M17 11.5h.01" stroke-width="2.6"/></svg>
+          </span>
+          <h3 data-i18n="inside.chatT">Chat</h3>
+          <p data-i18n="inside.chatD">Encrypted rooms and DMs on Matrix — your conversations live on your server, readable by no one else.</p>
+          <span class="ln-card-go"><span data-i18n="inside.open">Open</span> <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+
+        <a class="ln-card ln-card--learn reveal" href="https://__LS_LEARN__" style="--d:.06s">
+          <span class="ln-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 9L12 4 2 9l10 5 10-5z"/><path d="M6 11.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v5"/></svg>
+          </span>
+          <h3 data-i18n="inside.learnT">Learn</h3>
+          <p data-i18n="inside.learnD">Real courses and classrooms, taught and hosted by the community itself.</p>
+          <span class="ln-card-go"><span data-i18n="inside.open">Open</span> <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+
+        <a class="ln-card ln-card--meet reveal" href="https://__LS_MEET__" style="--d:.12s">
+          <span class="ln-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="13" height="12" rx="2.5"/><path d="M15 10.5l7-3.5v10l-7-3.5"/></svg>
+          </span>
+          <h3 data-i18n="inside.meetT">Meet</h3>
+          <p data-i18n="inside.meetD">Face-to-face video rooms in one click. No downloads, no account walls.</p>
+          <span class="ln-card-go"><span data-i18n="inside.open">Open</span> <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+
+        <a class="ln-card ln-card--live reveal" href="https://__LS_LIVE__" style="--d:.18s">
+          <span class="ln-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.2"/><path d="M8.5 15.5a5 5 0 0 1 0-7m7 0a5 5 0 0 1 0 7"/><path d="M5.6 18.4a9 9 0 0 1 0-12.8m12.8 0a9 9 0 0 1 0 12.8"/></svg>
+          </span>
+          <span class="ln-card-flag" data-card-live hidden>LIVE</span>
+          <h3 data-i18n="inside.liveT">Live</h3>
+          <p data-i18n="inside.liveD">Broadcast to everyone at once — concerts, talks, game nights, rituals.</p>
+          <span class="ln-card-go"><span data-i18n="inside.open">Open</span> <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+
+        <a class="ln-card ln-card--premium reveal" href="https://__LS_PREMIUM__" style="--d:.24s">
+          <span class="ln-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 5.3 5.5.8-4 4 1 5.9-5-2.8-5 2.8 1-5.9-4-4 5.5-.8L12 3z"/></svg>
+          </span>
+          <h3 data-i18n="inside.premT">Premium</h3>
+          <p data-i18n="inside.premD">Back the community and unlock more — pay by card or Bitcoin, cancel anytime.</p>
+          <span class="ln-card-go"><span data-i18n="inside.open">Open</span> <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= LIVE-NOW BAND ======================= -->
+  <section class="ln-section ln-live" id="live" data-state="off" aria-labelledby="liveTitle">
+    <div class="ln-wrap">
+      <div class="ln-live-band reveal">
+        <div class="ln-live-copy" aria-live="polite">
+          <p class="ls-badge ln-live-badge">
+            <span class="ls-dot" data-live-dot aria-hidden="true"></span>
+            <span data-live-state data-i18n="live.badgeOff">Offline</span>
+          </p>
+          <h2 class="ln-h2" id="liveTitle" data-live-title data-i18n="live.offTitle">The stage is dark — for now</h2>
+          <p class="ln-lede" data-live-sub data-i18n="live.offSub">When __LS_BRAND_NAME__ goes live, this space lights up with the stream. Join and you&rsquo;ll be the first to know.</p>
+          <p class="ln-live-meta" data-live-meta hidden></p>
+          <div class="ln-live-actions">
+            <a class="ls-btn ls-btn--brand" href="https://__LS_LIVE__" data-live-watch hidden>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>
+              <span data-i18n="live.watch">Watch now</span>
+            </a>
+            <a class="ls-btn ls-btn--ghost" href="#join" data-i18n="live.notify">Join to get notified</a>
+          </div>
+        </div>
+        <div class="ln-live-stage" data-live-stage>
+          <div class="ln-live-placeholder" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.2"/><path d="M8.5 15.5a5 5 0 0 1 0-7m7 0a5 5 0 0 1 0 7"/><path d="M5.6 18.4a9 9 0 0 1 0-12.8m12.8 0a9 9 0 0 1 0 12.8"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= FINAL CTA ======================= -->
+  <section class="ln-section ln-final" id="join" aria-labelledby="finalTitle">
+    <div class="ln-ring" aria-hidden="true"></div>
+    <div class="ln-noise" aria-hidden="true"></div>
+    <div class="ln-wrap ln-final-inner">
+      <h2 class="ln-display ln-final-title reveal" id="finalTitle"><span class="ln-gradient" data-i18n="final.title">Own your corner of the internet.</span></h2>
+      <p class="ln-lede reveal" style="--d:.08s" data-i18n="final.sub">Type your email. Get your keys. It takes a minute.</p>
+      <form class="ln-join reveal" style="--d:.16s" action="https://__LS_PREMIUM__/join" method="post" accept-charset="utf-8">
+        <label class="ln-sr" for="joinEmailFinal" data-i18n="hero.emailLabel">Email address</label>
+        <input class="ls-input ln-join-input" id="joinEmailFinal" type="email" name="email"
+               autocomplete="email" inputmode="email" required
+               placeholder="you@somewhere.earth" data-i18n-ph="hero.emailPh">
+        <input type="hidden" name="source" value="landing-footer">
+        <input type="hidden" name="lang" value="en" data-lang-field>
+        <button class="ls-btn ls-btn--brand ln-join-btn" type="submit">
+          <span data-i18n="hero.cta">Become sovereign</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+      <div class="ln-hero-actions reveal" style="--d:.24s">
+        <button class="ls-btn ls-btn--ghost" type="button" data-install>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M12 6.5v6m0 0-2.4-2.4M12 12.5l2.4-2.4"/><path d="M10.5 18.5h3"/></svg>
+          <span data-i18n="hero.install">Install the app</span>
+        </button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ======================= FOOTER ======================= -->
+<footer class="ln-footer">
+  <div class="ln-wrap ln-footer-grid">
+    <div class="ln-footer-brand">
+      <a class="ln-brand" href="/" aria-label="__LS_BRAND_NAME__ — home">
+        <img class="ls-logo" src="/brand/logo.svg" alt="" width="30" height="30">
+        <span class="ln-brand-name">__LS_BRAND_NAME__</span>
+      </a>
+      <p class="ls-muted">__LS_BRAND_TAGLINE__</p>
+    </div>
+    <nav class="ln-footer-col" aria-label="Spaces">
+      <h4 data-i18n="footer.spaces">Spaces</h4>
+      <a href="https://__LS_CHAT__" data-i18n="inside.chatT">Chat</a>
+      <a href="https://__LS_LEARN__" data-i18n="inside.learnT">Learn</a>
+      <a href="https://__LS_MEET__" data-i18n="inside.meetT">Meet</a>
+      <a href="https://__LS_LIVE__" data-i18n="inside.liveT">Live</a>
+      <a href="https://__LS_PREMIUM__" data-i18n="inside.premT">Premium</a>
+    </nav>
+    <nav class="ln-footer-col" aria-label="Account">
+      <h4 data-i18n="footer.you">You</h4>
+      <a href="https://__LS_AUTH__" data-i18n="nav.signin">Sign in</a>
+      <a href="#join" data-i18n="nav.join">Join</a>
+      <a href="https://__LS_APP__" data-i18n="footer.app">Open the app</a>
+      <a href="#" data-install data-i18n="hero.install">Install the app</a>
+    </nav>
+  </div>
+  <div class="ln-wrap ln-footer-legal">
+    <span>&copy; <span data-year>2026</span> __LS_BRAND_NAME__</span>
+    <span class="ls-poweredby" data-poweredby><span data-i18n="footer.powered">Powered by</span> <b>__LS_POWERED_BY__</b></span>
+  </div>
+</footer>
+
+<!-- iOS install tip (shown when no install prompt is available) -->
+<div class="ln-tip" id="installTip" role="status" hidden>
+  <p data-i18n="misc.iosTip">On iPhone: tap <b>Share</b>, then &ldquo;Add to Home Screen&rdquo;.</p>
+</div>
+
+<!-- Runtime config for landing.js (placeholders render at deploy) -->
+<script type="application/json" id="ls-config">
+{
+  "brand": "__LS_BRAND_NAME__",
+  "live": "https://__LS_LIVE__",
+  "app": "https://__LS_APP__",
+  "premium": "https://__LS_PREMIUM__",
+  "auth": "https://__LS_AUTH__"
+}
+</script>
+
+<!-- i18n strings (en default; es/fr swapped client-side by navigator.language) -->
+<script type="application/json" id="ls-i18n">
+{
+  "en": {
+    "misc.skip": "Skip to content",
+    "misc.iosTip": "On iPhone: tap Share, then “Add to Home Screen”.",
+    "nav.story": "Sovereignty",
+    "nav.inside": "What’s inside",
+    "nav.live": "Live",
+    "nav.signin": "Sign in",
+    "nav.join": "Join",
+    "hero.kicker": "Your community · your rules · your server",
+    "hero.sovereign": "Become sovereign.",
+    "hero.sub": "__LS_BRAND_NAME__ is a whole digital world — chat, classes, meetings, livestreams — running on hardware no tech giant controls. Install it. Own it. Live in it.",
+    "hero.emailLabel": "Email address",
+    "hero.emailPh": "you@somewhere.earth",
+    "hero.cta": "Become sovereign",
+    "hero.install": "Install the app",
+    "hero.note": "Free to join · no ads, no trackers · your data stays yours",
+    "hero.proof": "People around the world are moving in",
+    "marquee.word": "Sovereign",
+    "story.kicker": "The sovereignty story",
+    "story.title": "Big Tech rents you a feed. We hand you the keys.",
+    "story.lede": "Every platform you “use for free” owns your words, your audience and your attention. __LS_BRAND_NAME__ flips the deal: the whole platform runs on community hardware, in the open, for you.",
+    "story.p1t": "You own it",
+    "story.p1d": "Every message, course and stream lives on community machines — not in a corporate cloud. If we vanished tomorrow, your world keeps running.",
+    "story.p2t": "Self-hosted, fully",
+    "story.p2d": "One box, one config, a whole platform — open source from the login screen to the video pipeline, portable to any hardware on earth.",
+    "story.p3t": "No Big Tech",
+    "story.p3d": "No surveillance ads, no algorithmic overlords, no selling your attention. The feed serves you — not shareholders.",
+    "story.s1": "yours — code, data, keys",
+    "story.s2": "ads or trackers, ever",
+    "story.s3": "login for everything",
+    "inside.kicker": "What’s inside",
+    "inside.title": "One install. A whole world.",
+    "inside.lede": "Five spaces, one identity. Sign in once and move freely.",
+    "inside.open": "Open",
+    "inside.chatT": "Chat",
+    "inside.chatD": "Encrypted rooms and DMs on Matrix — your conversations live on your server, readable by no one else.",
+    "inside.learnT": "Learn",
+    "inside.learnD": "Real courses and classrooms, taught and hosted by the community itself.",
+    "inside.meetT": "Meet",
+    "inside.meetD": "Face-to-face video rooms in one click. No downloads, no account walls.",
+    "inside.liveT": "Live",
+    "inside.liveD": "Broadcast to everyone at once — concerts, talks, game nights, rituals.",
+    "inside.premT": "Premium",
+    "inside.premD": "Back the community and unlock more — pay by card or Bitcoin, cancel anytime.",
+    "live.badgeOff": "Offline",
+    "live.badgeOn": "Live now",
+    "live.offTitle": "The stage is dark — for now",
+    "live.offSub": "When __LS_BRAND_NAME__ goes live, this space lights up with the stream. Join and you’ll be the first to know.",
+    "live.onTitle": "We’re live right now",
+    "live.onSub": "Streaming straight from __LS_BRAND_NAME__’s own stage — no middlemen, no pre-roll ads.",
+    "live.watch": "Watch now",
+    "live.notify": "Join to get notified",
+    "live.viewers": "{n} watching",
+    "final.title": "Own your corner of the internet.",
+    "final.sub": "Type your email. Get your keys. It takes a minute.",
+    "footer.spaces": "Spaces",
+    "footer.you": "You",
+    "footer.app": "Open the app",
+    "footer.powered": "Powered by"
+  },
+  "es": {
+    "misc.skip": "Saltar al contenido",
+    "misc.iosTip": "En iPhone: toca Compartir y luego “Añadir a pantalla de inicio”.",
+    "nav.story": "Soberanía",
+    "nav.inside": "Qué hay dentro",
+    "nav.live": "En vivo",
+    "nav.signin": "Entrar",
+    "nav.join": "Únete",
+    "hero.kicker": "Tu comunidad · tus reglas · tu servidor",
+    "hero.sovereign": "Hazte soberano.",
+    "hero.sub": "__LS_BRAND_NAME__ es un mundo digital completo — chat, clases, reuniones, directos — funcionando en hardware que ninguna gran tecnológica controla. Instálalo. Hazlo tuyo. Vive en él.",
+    "hero.emailLabel": "Correo electrónico",
+    "hero.emailPh": "tu@algunlugar.tierra",
+    "hero.cta": "Hazte soberano",
+    "hero.install": "Instala la app",
+    "hero.note": "Unirse es gratis · sin anuncios ni rastreadores · tus datos son tuyos",
+    "hero.proof": "Gente de todo el mundo se está mudando aquí",
+    "marquee.word": "Soberano",
+    "story.kicker": "La historia de la soberanía",
+    "story.title": "Las Big Tech te alquilan un feed. Nosotros te damos las llaves.",
+    "story.lede": "Cada plataforma que “usas gratis” es dueña de tus palabras, tu audiencia y tu atención. __LS_BRAND_NAME__ invierte el trato: toda la plataforma corre en hardware comunitario, en abierto, para ti.",
+    "story.p1t": "Es tuyo",
+    "story.p1d": "Cada mensaje, curso y directo vive en máquinas de la comunidad — no en una nube corporativa. Si desapareciéramos mañana, tu mundo sigue funcionando.",
+    "story.p2t": "Autoalojado, del todo",
+    "story.p2d": "Una caja, una configuración, toda una plataforma — código abierto desde el login hasta el vídeo, portable a cualquier hardware del planeta.",
+    "story.p3t": "Sin Big Tech",
+    "story.p3d": "Sin publicidad de vigilancia, sin algoritmos que te gobiernen, sin vender tu atención. El feed te sirve a ti — no a accionistas.",
+    "story.s1": "tuyo — código, datos, llaves",
+    "story.s2": "anuncios o rastreadores, jamás",
+    "story.s3": "inicio de sesión para todo",
+    "inside.kicker": "Qué hay dentro",
+    "inside.title": "Una instalación. Un mundo entero.",
+    "inside.lede": "Cinco espacios, una identidad. Inicia sesión una vez y muévete libremente.",
+    "inside.open": "Abrir",
+    "inside.chatT": "Chat",
+    "inside.chatD": "Salas y mensajes cifrados sobre Matrix — tus conversaciones viven en tu servidor y nadie más puede leerlas.",
+    "inside.learnT": "Aprende",
+    "inside.learnD": "Cursos y aulas de verdad, impartidos y alojados por la propia comunidad.",
+    "inside.meetT": "Reúnete",
+    "inside.meetD": "Salas de vídeo cara a cara en un clic. Sin descargas ni muros de registro.",
+    "inside.liveT": "En vivo",
+    "inside.liveD": "Emite para todos a la vez — conciertos, charlas, noches de juego, rituales.",
+    "inside.premT": "Premium",
+    "inside.premD": "Apoya a la comunidad y desbloquea más — paga con tarjeta o Bitcoin, cancela cuando quieras.",
+    "live.badgeOff": "Sin emisión",
+    "live.badgeOn": "En vivo ahora",
+    "live.offTitle": "El escenario está a oscuras — por ahora",
+    "live.offSub": "Cuando __LS_BRAND_NAME__ salga en directo, este espacio se ilumina con el stream. Únete y serás el primero en saberlo.",
+    "live.onTitle": "Estamos en directo ahora mismo",
+    "live.onSub": "Emitiendo desde el propio escenario de __LS_BRAND_NAME__ — sin intermediarios, sin anuncios previos.",
+    "live.watch": "Ver ahora",
+    "live.notify": "Únete para enterarte",
+    "live.viewers": "{n} viendo",
+    "final.title": "Adueñate de tu rincón de internet.",
+    "final.sub": "Escribe tu correo. Recibe tus llaves. Toma un minuto.",
+    "footer.spaces": "Espacios",
+    "footer.you": "Tú",
+    "footer.app": "Abrir la app",
+    "footer.powered": "Impulsado por"
+  },
+  "fr": {
+    "misc.skip": "Aller au contenu",
+    "misc.iosTip": "Sur iPhone : touchez Partager, puis « Sur l’écran d’accueil ».",
+    "nav.story": "Souveraineté",
+    "nav.inside": "À l’intérieur",
+    "nav.live": "En direct",
+    "nav.signin": "Connexion",
+    "nav.join": "Rejoindre",
+    "hero.kicker": "Votre communauté · vos règles · votre serveur",
+    "hero.sovereign": "Devenez souverain.",
+    "hero.sub": "__LS_BRAND_NAME__ est un monde numérique complet — discussions, cours, réunions, directs — tournant sur du matériel qu’aucun géant de la tech ne contrôle. Installez-le. Possédez-le. Vivez-y.",
+    "hero.emailLabel": "Adresse e-mail",
+    "hero.emailPh": "vous@quelquepart.terre",
+    "hero.cta": "Devenez souverain",
+    "hero.install": "Installer l’app",
+    "hero.note": "Adhésion gratuite · sans pubs ni traqueurs · vos données restent vôtres",
+    "hero.proof": "Des gens du monde entier emménagent ici",
+    "marquee.word": "Souverain",
+    "story.kicker": "L’histoire de la souveraineté",
+    "story.title": "Les Big Tech vous louent un fil. Nous, on vous tend les clés.",
+    "story.lede": "Chaque plateforme “gratuite” possède vos mots, votre audience et votre attention. __LS_BRAND_NAME__ inverse le marché : toute la plateforme tourne sur du matériel communautaire, à découvert, pour vous.",
+    "story.p1t": "C’est à vous",
+    "story.p1d": "Chaque message, cours et direct vit sur des machines communautaires — pas dans un nuage d’entreprise. Si nous disparaissions demain, votre monde continue de tourner.",
+    "story.p2t": "Auto-hébergé, entièrement",
+    "story.p2d": "Une machine, une config, toute une plateforme — open source de l’écran de connexion au flux vidéo, portable sur n’importe quel matériel.",
+    "story.p3t": "Zéro Big Tech",
+    "story.p3d": "Pas de pub de surveillance, pas d’algorithme tout-puissant, pas de vente de votre attention. Le fil vous sert, vous — pas des actionnaires.",
+    "story.s1": "à vous — code, données, clés",
+    "story.s2": "pubs ou traqueurs, jamais",
+    "story.s3": "connexion pour tout",
+    "inside.kicker": "À l’intérieur",
+    "inside.title": "Une installation. Tout un monde.",
+    "inside.lede": "Cinq espaces, une seule identité. Connectez-vous une fois, circulez librement.",
+    "inside.open": "Ouvrir",
+    "inside.chatT": "Chat",
+    "inside.chatD": "Salons et messages chiffrés sur Matrix — vos conversations vivent sur votre serveur, lisibles par personne d’autre.",
+    "inside.learnT": "Apprendre",
+    "inside.learnD": "De vrais cours et salles de classe, donnés et hébergés par la communauté elle-même.",
+    "inside.meetT": "Se réunir",
+    "inside.meetD": "Des salles vidéo en face à face, en un clic. Sans téléchargement, sans barrière de compte.",
+    "inside.liveT": "En direct",
+    "inside.liveD": "Diffusez pour tout le monde à la fois — concerts, conférences, soirées jeux, rituels.",
+    "inside.premT": "Premium",
+    "inside.premD": "Soutenez la communauté et débloquez plus — payez par carte ou en Bitcoin, annulez quand vous voulez.",
+    "live.badgeOff": "Hors ligne",
+    "live.badgeOn": "En direct",
+    "live.offTitle": "La scène est éteinte — pour l’instant",
+    "live.offSub": "Quand __LS_BRAND_NAME__ passe en direct, cet espace s’illumine avec le flux. Rejoignez-nous et vous le saurez en premier.",
+    "live.onTitle": "Nous sommes en direct",
+    "live.onSub": "Diffusé depuis la propre scène de __LS_BRAND_NAME__ — sans intermédiaires, sans pub avant le direct.",
+    "live.watch": "Regarder",
+    "live.notify": "Rejoindre pour être prévenu",
+    "live.viewers": "{n} spectateurs",
+    "final.title": "Possédez votre coin d’internet.",
+    "final.sub": "Entrez votre e-mail. Recevez vos clés. Une minute suffit.",
+    "footer.spaces": "Espaces",
+    "footer.you": "Vous",
+    "footer.app": "Ouvrir l’app",
+    "footer.powered": "Propulsé par"
+  }
+}
+</script>
+
+<script src="/landing.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Offline</title>
+  <link rel="icon" href="/brand/favicon.ico">
+  <link rel="stylesheet" href="/brand/system.css">
+  <link rel="stylesheet" href="/brand/tokens.css">
+  <style>
+    /* Minimal fallback so this page still reads if the cached CSS is missing. */
+    html,body{min-height:100%}
+    body{margin:0;background:var(--ls-ink,#0b0b12);color:var(--ls-text,#eef0ff);
+      font-family:var(--ls-font,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif)}
+    .off-wrap{min-height:100svh;display:flex;align-items:center;justify-content:center;
+      padding:max(22px,env(safe-area-inset-top)) 22px max(22px,env(safe-area-inset-bottom))}
+    .off-card{width:min(440px,100%);text-align:center;position:relative;overflow:hidden}
+    .off-logo{height:44px;margin:0 auto 18px;display:block;opacity:.95}
+    .off-dot{margin-right:2px}
+    .off-actions{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+    .off-hint{font-size:var(--ls-fs-1,13px);margin:14px 0 0}
+    @media (prefers-reduced-motion:no-preference){
+      .off-card{animation:off-in .5s var(--ls-ease,cubic-bezier(.2,.7,.2,1)) both}
+      @keyframes off-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+    }
+  </style>
+</head>
+<body class="ls ls-scope">
+  <main class="off-wrap">
+    <section class="ls-hero ls-card--pad-lg off-card" role="status" aria-live="polite">
+      <img class="off-logo" src="/brand/logo.svg" alt="" onerror="this.style.display='none'">
+      <span class="ls-badge">
+        <span class="ls-dot off-dot" id="net-dot"></span>
+        <span data-i18n="badge">Offline</span>
+      </span>
+      <h1 style="margin-top:14px" data-i18n="title">You&rsquo;re offline</h1>
+      <p class="ls-muted" data-i18n="body">No connection right now. Your app is safe on this device
+        and will reconnect the moment you&rsquo;re back online.</p>
+      <div class="off-actions">
+        <button class="ls-btn ls-btn--brand ls-btn--block" id="retry" data-i18n="retry">Try again</button>
+      </div>
+      <p class="ls-faint off-hint" data-i18n="hint">Reconnecting automatically&hellip;</p>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* ---- i18n (en / es / fr), default en -------------------------------- */
+      var STRINGS = {
+        en: {
+          badge: 'Offline',
+          title: 'You’re offline',
+          body: 'No connection right now. Your app is safe on this device and will reconnect the moment you’re back online.',
+          retry: 'Try again',
+          hint: 'Reconnecting automatically…'
+        },
+        es: {
+          badge: 'Sin conexión',
+          title: 'Estás sin conexión',
+          body: 'No hay conexión en este momento. Tu app está a salvo en este dispositivo y se reconectará en cuanto vuelvas a estar en línea.',
+          retry: 'Reintentar',
+          hint: 'Reconectando automáticamente…'
+        },
+        fr: {
+          badge: 'Hors ligne',
+          title: 'Vous êtes hors ligne',
+          body: 'Pas de connexion pour le moment. Votre app reste sur cet appareil et se reconnectera dès votre retour en ligne.',
+          retry: 'Réessayer',
+          hint: 'Reconnexion automatique…'
+        }
+      };
+      var lang = (navigator.language || 'en').slice(0, 2).toLowerCase();
+      var t = STRINGS[lang] || STRINGS.en;
+      document.documentElement.lang = STRINGS[lang] ? lang : 'en';
+      document.querySelectorAll('[data-i18n]').forEach(function (el) {
+        var key = el.getAttribute('data-i18n');
+        if (t[key]) el.textContent = t[key];
+      });
+      document.title = t.badge;
+
+      /* ---- retry / auto-recovery ------------------------------------------ */
+      function back() { location.replace('/app/'); }
+      function probe() {
+        /* HEAD the shell past the SW cache; if it answers, we are back. */
+        fetch('/app/', { method: 'HEAD', cache: 'no-store' })
+          .then(function (r) { if (r && (r.ok || r.type === 'opaqueredirect')) back(); })
+          .catch(function () { /* still offline */ });
+      }
+      document.getElementById('retry').addEventListener('click', function () {
+        var dot = document.getElementById('net-dot');
+        dot.classList.add('ls-dot--live');
+        setTimeout(function () { dot.classList.remove('ls-dot--live'); }, 1600);
+        probe();
+      });
+      window.addEventListener('online', probe);
+      setInterval(probe, 15000);
+    })();
+  </script>
+</body>
+</html>

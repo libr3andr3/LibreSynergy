@@ -1,0 +1,18 @@
+# robots.txt — Yaya (https://yaya.sh)
+# Rendered from www/robots.template.txt by apply-branding.sh.
+#
+# Policy: the landing site is the public, crawlable surface. The installable
+# app shell (served under /app/ on this host and at https://app.yaya.sh/) is
+# member territory and stays out of search indexes — app.yaya.sh
+# additionally serves its own deny-all robots.txt from the edge (see
+# routing/templates/edge-hub.caddy).
+
+User-agent: *
+Allow: /
+
+# Gated app internals + first-party form/API endpoints (no SEO value)
+Disallow: /app/
+Disallow: /api/
+Disallow: /jobs/submit
+
+Sitemap: https://yaya.sh/sitemap.xml

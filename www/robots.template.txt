@@ -1,0 +1,18 @@
+# robots.txt — __LS_BRAND_NAME__ (https://__LS_BASE_DOMAIN__)
+# Rendered from www/robots.template.txt by apply-branding.sh.
+#
+# Policy: the landing site is the public, crawlable surface. The installable
+# app shell (served under /app/ on this host and at https://__LS_APP__/) is
+# member territory and stays out of search indexes — app.__LS_BASE_DOMAIN__
+# additionally serves its own deny-all robots.txt from the edge (see
+# routing/templates/edge-hub.caddy).
+
+User-agent: *
+Allow: /
+
+# Gated app internals + first-party form/API endpoints (no SEO value)
+Disallow: /app/
+Disallow: /api/
+Disallow: /jobs/submit
+
+Sitemap: https://__LS_BASE_DOMAIN__/sitemap.xml

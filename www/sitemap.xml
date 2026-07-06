@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Yaya sitemap. Rendered to sitemap.xml by apply-branding.sh;
+  referenced from robots.txt and served at https://yaya.sh/sitemap.xml.
+
+  Only truly public surfaces belong here. Entries on subdomains (live, learn)
+  are intentional: crawlers accept them when the operator verifies a DOMAIN
+  property (covers all subdomains) in Google Search Console / Bing Webmaster
+  Tools. See docs/discoverability.md.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- The landing page: the front door and primary SEO surface -->
+  <url>
+    <loc>https://yaya.sh/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Join the community (public form) -->
+  <url>
+    <loc>https://yaya.sh/join</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Public livestream page (OwnCast; LIVE state exposed at /api/status) -->
+  <url>
+    <loc>https://live.yaya.sh/</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Public course catalog (Frappe LMS) -->
+  <url>
+    <loc>https://learn.yaya.sh/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+</urlset>

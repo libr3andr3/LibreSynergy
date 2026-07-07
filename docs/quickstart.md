@@ -160,6 +160,13 @@ identity scaffold (signup flow, passwordless email-code login, `members` and
 `premium` groups, brand defaults) is applied automatically from
 `compose/blueprints/00-community-identity.yaml` when authentik boots.
 
+Then scaffold the community's chat structure (spaces, #general, the premium
+lounge) and point the announcement bot at it — one command, run from the repo:
+
+```bash
+scripts/scaffold-matrix.sh && ls restart
+```
+
 Everyone who registers after you is an ordinary member. From your admin
 account:
 

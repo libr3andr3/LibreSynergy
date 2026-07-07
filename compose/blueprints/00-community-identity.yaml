@@ -1,0 +1,289 @@
+# ============================================================================
+#  LibreSynergy — community identity scaffold (applied automatically by
+#  authentik on boot; safe to re-apply, it converges to this exact state).
+#
+#  What it creates:
+#    • groups: members (everyone) + premium (paying supporters)
+#    • community-signup flow  — username + email → account → email code → in.
+#      THE FIRST PERSON TO REGISTER BECOMES THE ADMIN (superuser). Every
+#      later registrant is an ordinary member. No bootstrap passwords, no
+#      shell steps: bring the stack up, register, you own it.
+#    • passwordless-login flow — sign in with an email code; users who lost
+#      their email device re-enroll in place.
+#    • brand defaults — login/enrollment point at these flows.
+#
+#  Emails are sent through YOUR SMTP credentials from secrets/email.env
+#  (AUTHENTIK_EMAIL__*): your token, your provider, your mail.
+# ============================================================================
+version: 1
+metadata:
+  name: libresynergy-community-identity
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+entries:
+# ---- groups ----------------------------------------------------------------
+- model: authentik_core.group
+  id: group-members
+  identifiers:
+    name: members
+  attrs:
+    is_superuser: false
+  state: present
+- model: authentik_core.group
+  identifiers:
+    name: premium
+  attrs:
+    is_superuser: false
+  state: present
+
+# ---- signup flow -----------------------------------------------------------
+- model: authentik_flows.flow
+  identifiers:
+    pk: ba1afee6-516d-4c1e-bc07-6a9002a3b27f
+    slug: community-signup
+  attrs:
+    authentication: require_unauthenticated
+    denied_action: message_continue
+    designation: enrollment
+    layout: stacked
+    name: Community signup
+    policy_engine_mode: any
+    title: Join the community
+  state: present
+- model: authentik_stages_prompt.prompt
+  identifiers:
+    pk: 174b3837-dc47-4156-9fc5-391380234d4e
+  attrs:
+    field_key: username
+    label: Username
+    name: signup-username
+    order: 0
+    placeholder: your-handle
+    required: true
+    sub_text: "This becomes your identity everywhere here — chat, classroom, live."
+    type: username
+  state: present
+- model: authentik_stages_prompt.prompt
+  identifiers:
+    pk: 0279eb66-62ae-45f9-ac6b-2842957c0300
+  attrs:
+    field_key: email
+    label: Email
+    name: signup-email
+    order: 1
+    placeholder: you@example.com
+    required: true
+    type: email
+  state: present
+- model: authentik_policies_expression.expressionpolicy
+  identifiers:
+    pk: 185a1329-7ae3-490d-ab65-b0102128d11f
+  attrs:
+    name: username-matrix-safe
+    expression: |
+      import re
+      u = (request.context.get('prompt_data') or {}).get('username') or ''
+      if not re.fullmatch(r'[a-z0-9._-]{3,30}', u):
+          ak_message('Username must be 3-30 chars: lowercase letters, numbers, . _ -')
+          return False
+      return True
+  state: present
+# The bringup keystone: the first human to register becomes the admin.
+# Counts every active internal user except authentik's built-ins; if the user
+# just written by this flow is the only one, they join "authentik Admins".
+- model: authentik_policies_expression.expressionpolicy
+  identifiers:
+    pk: 338c8253-ef94-4d95-9d8b-bf4dbcf351f6
+  attrs:
+    name: first-user-becomes-admin
+    execution_logging: true
+    expression: |
+      from authentik.core.models import User, Group
+      user = request.context.get("pending_user")
+      if user and user.pk:
+          humans = User.objects.filter(type="internal", is_active=True).exclude(username__in=["AnonymousUser", "akadmin"])
+          if humans.count() == 1 and humans.first().pk == user.pk:
+              Group.objects.get(name="authentik Admins").users.add(user)
+              ak_create_event("first_admin_bootstrap", user=user)
+      return True
+  state: present
+- model: authentik_stages_user_write.userwritestage
+  identifiers:
+    name: signup-user-write
+    pk: 44aab339-2b60-4a85-9dec-5a1c8ab9dbec
+  attrs:
+    create_users_group: !KeyOf group-members
+    user_creation_mode: always_create
+    user_type: external
+  state: present
+- model: authentik_stages_authenticator_email.authenticatoremailstage
+  identifiers:
+    name: email-code-setup
+    pk: 473aee16-7b00-434c-aca7-94aab8fd61b9
+  attrs:
+    friendly_name: Email security code
+    subject: Your sign-in code
+    template: email/email_otp.html
+    token_expiry: minutes=15
+    use_global_settings: true
+  state: present
+- model: authentik_stages_user_login.userloginstage
+  identifiers:
+    name: default-authentication-login
+    pk: 79aa17ab-f21c-41e9-ad65-9e3a9d722e33
+  attrs:
+    geoip_binding: no_binding
+    network_binding: no_binding
+    remember_me_offset: seconds=0
+    session_duration: seconds=0
+  state: present
+- model: authentik_stages_prompt.promptstage
+  identifiers:
+    name: signup-identity
+    pk: b07f3cd4-503f-4571-8389-3946cbf27090
+  attrs:
+    fields:
+    - 174b3837-dc47-4156-9fc5-391380234d4e
+    - 0279eb66-62ae-45f9-ac6b-2842957c0300
+    validation_policies:
+    - 185a1329-7ae3-490d-ab65-b0102128d11f
+  state: present
+- model: authentik_flows.flowstagebinding
+  identifiers:
+    pk: 854c185a-c39a-4bf0-88b3-ea3e887255cb
+    target: ba1afee6-516d-4c1e-bc07-6a9002a3b27f
+    stage: b07f3cd4-503f-4571-8389-3946cbf27090
+    order: 0
+  attrs:
+    evaluate_on_plan: true
+    invalid_response_action: retry
+    policy_engine_mode: any
+  state: present
+- model: authentik_flows.flowstagebinding
+  identifiers:
+    pk: 361de1cd-b3f8-4f5d-a669-656bcc888a6e
+    target: ba1afee6-516d-4c1e-bc07-6a9002a3b27f
+    stage: 44aab339-2b60-4a85-9dec-5a1c8ab9dbec
+    order: 10
+  attrs:
+    evaluate_on_plan: true
+    invalid_response_action: retry
+    policy_engine_mode: any
+  state: present
+- model: authentik_flows.flowstagebinding
+  identifiers:
+    pk: ef8c489c-6578-4eca-86cc-3fee6d27a492
+    target: ba1afee6-516d-4c1e-bc07-6a9002a3b27f
+    stage: 473aee16-7b00-434c-aca7-94aab8fd61b9
+    order: 20
+  attrs:
+    evaluate_on_plan: true
+    invalid_response_action: retry
+    policy_engine_mode: any
+  state: present
+# re_evaluate_policies makes the first-admin policy run AFTER user_write, when
+# the new account exists — not at flow-planning time, when it doesn't yet.
+- model: authentik_flows.flowstagebinding
+  identifiers:
+    pk: bb7e394f-4b20-41d1-a44b-2f7943bc14d4
+    target: ba1afee6-516d-4c1e-bc07-6a9002a3b27f
+    stage: 79aa17ab-f21c-41e9-ad65-9e3a9d722e33
+    order: 100
+  attrs:
+    evaluate_on_plan: true
+    invalid_response_action: retry
+    policy_engine_mode: any
+    re_evaluate_policies: true
+  state: present
+- model: authentik_policies.policybinding
+  identifiers:
+    pk: 89690ee2-9984-42be-86b3-d8b1e899c6d0
+    policy: 338c8253-ef94-4d95-9d8b-bf4dbcf351f6
+    target: bb7e394f-4b20-41d1-a44b-2f7943bc14d4
+    order: 0
+  attrs:
+    enabled: true
+    timeout: 30
+  state: present
+
+# ---- passwordless login flow -------------------------------------------------
+- model: authentik_flows.flow
+  identifiers:
+    pk: 3c64266a-bdc3-41af-b42e-68750e4b68c8
+    slug: passwordless-login
+  attrs:
+    authentication: require_unauthenticated
+    denied_action: message_continue
+    designation: authentication
+    layout: stacked
+    name: Passwordless login
+    policy_engine_mode: any
+    title: Sign in with an email code
+  state: present
+- model: authentik_stages_identification.identificationstage
+  identifiers:
+    name: passwordless-identification
+    pk: 9bcfaa58-e4f4-4e3c-b782-3b685a4221b1
+  attrs:
+    case_insensitive_matching: true
+    enrollment_flow: ba1afee6-516d-4c1e-bc07-6a9002a3b27f
+    pretend_user_exists: true
+    user_fields:
+    - username
+    - email
+  state: present
+- model: authentik_stages_authenticator_validate.authenticatorvalidatestage
+  identifiers:
+    name: email-code-validate
+    pk: dcb2a707-bc12-4e15-8c87-f5b62a7196a9
+  attrs:
+    configuration_stages:
+    - 473aee16-7b00-434c-aca7-94aab8fd61b9
+    device_classes:
+    - email
+    last_auth_threshold: seconds=0
+    not_configured_action: configure
+    webauthn_user_verification: preferred
+  state: present
+- model: authentik_flows.flowstagebinding
+  identifiers:
+    pk: 0e87138b-858e-435f-99c6-e061df3ca875
+    target: 3c64266a-bdc3-41af-b42e-68750e4b68c8
+    stage: 9bcfaa58-e4f4-4e3c-b782-3b685a4221b1
+    order: 0
+  attrs:
+    evaluate_on_plan: true
+    invalid_response_action: retry
+    policy_engine_mode: any
+  state: present
+- model: authentik_flows.flowstagebinding
+  identifiers:
+    pk: 24c1ab00-9dbc-48c6-b220-99b62127a831
+    target: 3c64266a-bdc3-41af-b42e-68750e4b68c8
+    stage: dcb2a707-bc12-4e15-8c87-f5b62a7196a9
+    order: 10
+  attrs:
+    evaluate_on_plan: true
+    invalid_response_action: retry
+    policy_engine_mode: any
+  state: present
+- model: authentik_flows.flowstagebinding
+  identifiers:
+    pk: e133c9af-9d31-488d-b4c0-ccc8b52b447d
+    target: 3c64266a-bdc3-41af-b42e-68750e4b68c8
+    stage: 79aa17ab-f21c-41e9-ad65-9e3a9d722e33
+    order: 100
+  attrs:
+    evaluate_on_plan: true
+    invalid_response_action: retry
+    policy_engine_mode: any
+  state: present
+
+# ---- brand defaults: these flows ARE the front door --------------------------
+- model: authentik_brands.brand
+  identifiers:
+    domain: authentik-default
+  attrs:
+    flow_authentication: 3c64266a-bdc3-41af-b42e-68750e4b68c8
+    flow_enrollment: ba1afee6-516d-4c1e-bc07-6a9002a3b27f
+  state: present

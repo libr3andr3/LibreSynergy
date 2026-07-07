@@ -93,10 +93,10 @@ ls init
 ```
 
 This generates every secret (database passwords, signing keys, API tokens)
-into `${LS_SECRETS_DIR}/*.env` with mode 600, renders the Caddy and service
-configs from your env, and prints the bootstrap admin credentials for
-Authentik. **Save those credentials now.** `ls init` never overwrites
-existing secrets, so it too is safe to re-run.
+into `${LS_SECRETS_DIR}/*.env` with mode 600 and renders the Caddy and
+service configs from your env. `ls init` never overwrites existing secrets,
+so it too is safe to re-run. You do not need to note any admin credentials —
+the first account you register in step 9 becomes the admin.
 
 ## Step 6 — Launch (5 min, mostly waiting on image pulls)
 
@@ -142,17 +142,32 @@ port, DNS resolution for every hostname, the relay's SNI map coverage, and a
 real TLS connection from the outside for each subdomain. Re-run it until
 everything is green; each failure comes with a hint.
 
-## Step 9 — First sign-in: hand over the keys (5 min)
+## Step 9 — Register yourself. You're the admin. (2 min)
 
-1. Open `https://auth.<your-domain>` and sign in with the bootstrap admin
-   credentials from `ls init`. Change the password.
-2. Set your community's name and logo in Authentik's branding settings —
+Put your own SMTP credentials in `${LS_SECRETS_DIR}/email.env` (any provider
+that gives you an SMTP token works — your mail goes through *your* account,
+nobody else's). Then open:
+
+```
+https://auth.<your-domain>/if/flow/community-signup/
+```
+
+Pick a username, enter your email, and type the code that arrives.
+**The first account registered on a fresh instance automatically becomes the
+admin** — it lands in the `authentik Admins` group with full control of the
+stack. There are no bootstrap passwords to copy and no console steps; the
+identity scaffold (signup flow, passwordless email-code login, `members` and
+`premium` groups, brand defaults) is applied automatically from
+`compose/blueprints/00-community-identity.yaml` when authentik boots.
+
+Everyone who registers after you is an ordinary member. From your admin
+account:
+
+1. Set your community's name and logo in Authentik's branding settings —
    every login screen across the stack picks it up.
-3. Invite the community admin: create their account and send them the
-   magic link. They never need a password.
-4. Together, do the first lap: open `https://chat.<your-domain>` and say
-   hello, create a first course at `https://learn.<your-domain>`, and start
-   a test meeting at `https://meet.<your-domain>`.
+2. Do the first lap: open `https://chat.<your-domain>` and say hello, create
+   a first course at `https://learn.<your-domain>`, and start a test meeting
+   at `https://meet.<your-domain>`.
 
 From here the community admin invites members from Authentik, and every new
 member automatically lands in the `members` group with access to chat,

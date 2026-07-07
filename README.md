@@ -65,9 +65,13 @@ Full walkthrough with timings: [docs/quickstart.md](docs/quickstart.md).
 4. **Initialize and launch.** `./bin/ls init` generates every secret and
    renders your branded pages; `./bin/ls up` starts the stack
    (add `stream payments` for livestreaming and checkout).
-5. **Point DNS and verify.** Create the DNS records for your subdomains
-   (all pointing at the VPS), then run `./bin/ls doctor` until everything is
-   green. Point OBS at `rtmp://live.<your-domain>` and go live.
+5. **Point DNS, verify, and register yourself.** Create the DNS records for
+   your subdomains (all pointing at the VPS), run `./bin/ls doctor` until
+   everything is green, then open
+   `https://auth.<your-domain>/if/flow/community-signup/` and sign up —
+   **the first account registered becomes the admin**, verified by an email
+   code sent through your own SMTP credentials. No bootstrap passwords, no
+   console steps. Point OBS at `rtmp://live.<your-domain>` and go live.
 
 ## The sovereign mesh *(optional, `mesh/`)*
 

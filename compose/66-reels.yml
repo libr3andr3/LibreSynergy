@@ -1,0 +1,49 @@
+# LibreSynergy — reels unit (optional, profile: "reels"). Needs the tracker
+# (profile: "vod") for peer discovery + swarm scraping.
+#
+# The peer-seeded short-video feed: liking a reel downloads it and seeds it
+# from the viewer's browser (WebTorrent), so what people actually like gains
+# seeds, streams faster and ranks higher — the swarm is the algorithm, and the
+# formula is published in the app. This service is the origin: it stores
+# uploads, creates torrents (announce = our tracker, webseed = its own /media/
+# URL) and keeps seeding everything, so playback never depends on the swarm.
+#
+#   Enable:  ./bin/ls up vod reels
+#   Route:   ./bin/ls route web reels 9130
+#
+# Every upload is transcoded before it touches the swarm (ffmpeg, installed
+# on boot): ≤720p H.264/AAC +faststart, ALL metadata stripped (phone clips
+# carry GPS coordinates — never seed those), cut at LS_REELS_MAX_SECONDS,
+# poster frame extracted. A reel is published + seeded only when this
+# succeeds, so the feed never shows something that can't play.
+#
+# Uploads are open by default (permissionless instance). Set
+# LS_REELS_REQUIRE_AUTH=1 and add the Authentik forward_auth block to the
+# ${LS_REELS} vhost (same as admin) to restrict publishing to members.
+# node_modules is installed on first boot into the mounted dir (persisted).
+
+services:
+  reels:
+    image: node:22-alpine
+    profiles: ["reels"]
+    restart: unless-stopped
+    network_mode: host            # binds loopback only; Caddy fronts ${LS_REELS}
+    working_dir: /app
+    command: ["sh", "-c", "apk add --no-cache ffmpeg >/dev/null && npm install --omit=dev --no-audit --no-fund && node server.mjs"]
+    environment:
+      LISTEN_HOST: 127.0.0.1
+      LISTEN_PORT: "9130"
+      STATE_DIR: /state
+      REELS_PUBLIC_URL: https://${LS_REELS:-reels.${LS_BASE_DOMAIN}}
+      TRACKER_WS: wss://${LS_TRACKER:-tracker.${LS_BASE_DOMAIN}}
+      TRACKER_ANNOUNCE: https://${LS_TRACKER:-tracker.${LS_BASE_DOMAIN}}/announce
+      TRACKER_SCRAPE: http://127.0.0.1:9120/announce   # tracker is host-net local
+      REELS_REQUIRE_AUTH: ${LS_REELS_REQUIRE_AUTH:-0}
+      MAX_UPLOAD_MB: ${LS_REELS_MAX_UPLOAD_MB:-200}
+      MAX_SECONDS: ${LS_REELS_MAX_SECONDS:-180}
+      LS_DEFAULT_LANG: ${LS_DEFAULT_LANG:-en}
+      TZ: ${LS_TZ:-UTC}
+    volumes:
+      - ./apps/reels:/app
+      - ./apps/i18n:/i18n:ro            # shared translation catalog (en/es/fr)
+      - ${LS_DATA_DIR}/reels:/state

@@ -165,6 +165,16 @@
     reverse_proxy 127.0.0.1:9120
 }
 
+# Reels — peer-seeded short-video feed (profile: reels). The app serves UI,
+# API and /media/ (the torrents' HTTPS webseed) from one origin. To restrict
+# uploads to members, set LS_REELS_REQUIRE_AUTH=1 and add the same
+# forward_auth block as the admin vhost above.
+{$LS_REELS} {
+    bind {$LS_WG_IP:10.0.0.2}
+    import secure_headers
+    reverse_proxy 127.0.0.1:9130
+}
+
 # Community web app (static)
 {$LS_APP} {
     bind {$LS_WG_IP:10.0.0.2}

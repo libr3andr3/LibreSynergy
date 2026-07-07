@@ -1,0 +1,11 @@
+{
+  "name": "libresynergy-reels",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Peer-seeded short-video feed for LibreSynergy — like = seed, the swarm is the algorithm",
+  "dependencies": {
+    "bittorrent-tracker": "^11.2.3",
+    "webtorrent": "^2.8.0"
+  }
+}

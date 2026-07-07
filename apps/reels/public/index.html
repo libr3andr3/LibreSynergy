@@ -1,0 +1,290 @@
+<!doctype html>
+<!-- LibreSynergy reels — the feed where YOU are the CDN.
+     Playback: WebTorrent (service-worker streaming) with the origin /media/
+     URL as instant fallback, so the video always plays. Liking a reel keeps
+     its torrent alive in your tab (and re-seeds it on every visit) — a like
+     is bandwidth, not a data point. The ranking formula is shown in-app. -->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>Reels</title>
+<style>
+  :root { --bg:#0b0d12; --fg:#eef1f8; --dim:#9aa0b5; --accent:#5eead4; --like:#fb7185; }
+  * { margin:0; box-sizing:border-box; font-family:system-ui,-apple-system,sans-serif; }
+  html,body { height:100%; background:var(--bg); color:var(--fg); overscroll-behavior:none; }
+  #feed { height:100dvh; overflow-y:scroll; scroll-snap-type:y mandatory; scrollbar-width:none; }
+  #feed::-webkit-scrollbar { display:none; }
+  .reel { position:relative; height:100dvh; scroll-snap-align:start; scroll-snap-stop:always;
+          display:flex; align-items:center; justify-content:center; background:#000; }
+  .reel video { width:100%; height:100%; object-fit:contain; }
+  .meta { position:absolute; left:14px; right:86px; bottom:calc(64px + env(safe-area-inset-bottom)); pointer-events:none; }
+  .meta h2 { font-size:17px; text-shadow:0 1px 8px #000c; }
+  .meta .by { color:var(--dim); font-size:13px; margin-top:2px; text-shadow:0 1px 8px #000c; }
+  .badges { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .badge { font-size:12px; background:#0009; border:1px solid #ffffff22; border-radius:999px;
+           padding:3px 10px; backdrop-filter:blur(6px); color:var(--accent); }
+  .badge.disc { color:#fbbf24; }
+  .rail { position:absolute; right:10px; bottom:calc(70px + env(safe-area-inset-bottom));
+          display:flex; flex-direction:column; gap:18px; align-items:center; }
+  .rail button { background:#0009; border:1px solid #ffffff22; color:var(--fg); width:52px; height:52px;
+                 border-radius:50%; font-size:22px; cursor:pointer; backdrop-filter:blur(6px); transition:transform .12s; }
+  .rail button:active { transform:scale(1.25); }
+  .rail .count { font-size:12px; color:var(--dim); text-align:center; margin-top:-12px; }
+  .rail button.liked { color:var(--like); border-color:var(--like); box-shadow:0 0 14px #fb718544; }
+  #bar { position:fixed; left:0; right:0; bottom:0; display:flex; align-items:center; gap:10px;
+         padding:8px 14px calc(8px + env(safe-area-inset-bottom)); background:linear-gradient(#0000,#0b0d12e6 40%);
+         font-size:12.5px; color:var(--dim); z-index:5; }
+  #bar b { color:var(--accent); font-weight:600; }
+  #bar .grow { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #bar button { background:var(--accent); color:#08251f; border:0; border-radius:999px; padding:8px 16px;
+                font-weight:700; font-size:13px; cursor:pointer; }
+  dialog { background:#131722; color:var(--fg); border:1px solid #ffffff1f; border-radius:16px;
+           padding:20px; max-width:420px; width:calc(100vw - 40px); }
+  dialog::backdrop { background:#000a; backdrop-filter:blur(3px); }
+  dialog h3 { margin-bottom:10px; font-size:16px; }
+  dialog p, dialog li { color:var(--dim); font-size:13.5px; line-height:1.55; }
+  dialog input[type=text] { width:100%; background:#0b0d12; color:var(--fg); border:1px solid #ffffff26;
+           border-radius:10px; padding:10px 12px; font-size:14px; margin:6px 0; }
+  dialog input[type=file] { margin:6px 0; font-size:13px; color:var(--dim); width:100%; }
+  dialog .actions { display:flex; gap:10px; margin-top:12px; justify-content:flex-end; }
+  dialog button { border:0; border-radius:999px; padding:9px 16px; font-weight:600; cursor:pointer; }
+  dialog button.go { background:var(--accent); color:#08251f; }
+  dialog button.x { background:#ffffff14; color:var(--fg); }
+  #prog { height:6px; background:#ffffff14; border-radius:3px; overflow:hidden; margin-top:10px; display:none; }
+  #prog i { display:block; height:100%; width:0; background:var(--accent); transition:width .2s; }
+  .empty { height:100dvh; display:flex; flex-direction:column; gap:10px; align-items:center;
+           justify-content:center; color:var(--dim); padding:30px; text-align:center; scroll-snap-align:start; }
+  .mutehint { position:absolute; top:calc(14px + env(safe-area-inset-top)); right:14px; }
+  .mutehint button { background:#0009; border:1px solid #ffffff22; color:var(--fg); border-radius:999px;
+           padding:6px 12px; font-size:12px; cursor:pointer; }
+  .scorebox { font-family:ui-monospace,monospace; font-size:12.5px; background:#0b0d12; border-radius:10px;
+           padding:12px; margin-top:10px; color:var(--accent); line-height:1.6; }
+</style>
+</head>
+<body>
+<script>/*__BOOT__*/</script>
+<div id="feed"></div>
+<div id="bar">
+  <span class="grow" id="stats"></span>
+  <button id="uploadBtn"></button>
+</div>
+
+<dialog id="whyDlg">
+  <h3 id="whyTitle"></h3>
+  <p id="whyBody"></p>
+  <div class="scorebox" id="whyMath"></div>
+  <div class="actions"><button class="x" onclick="whyDlg.close()">OK</button></div>
+</dialog>
+
+<dialog id="upDlg">
+  <h3 id="upTitle"></h3>
+  <input type="text" id="upName" maxlength="140">
+  <input type="text" id="upCreator" maxlength="60">
+  <input type="file" id="upFile" accept="video/mp4,video/webm,video/quicktime">
+  <div id="prog"><i></i></div>
+  <div class="actions">
+    <button class="x" onclick="upDlg.close()">✕</button>
+    <button class="go" id="upGo"></button>
+  </div>
+</dialog>
+
+<script src="/vendor/webtorrent.min.js"></script>
+<script>
+const B = window.__REELS__ || { lang:'en', strings:{}, tracker:'', publicUrl:'' }
+const t = (k, vars) => (B.strings[k] || k).replace(/\{(\w+)\}/g, (_, n) => vars?.[n] ?? '')
+
+// Anonymous, local-only identity: dedupes likes without accounts or tracking.
+const clientId = localStorage.ls_reels_client || (localStorage.ls_reels_client = crypto.randomUUID())
+const liked = new Set(JSON.parse(localStorage.ls_reels_liked || '[]'))
+const saveLiked = () => localStorage.ls_reels_liked = JSON.stringify([...liked])
+
+const wt = new WebTorrent()
+const torrents = new Map()          // id -> torrent
+let swEnabled = false
+// WebTorrent 2.x streams <video> through a service worker. If registration
+// fails (old browser, private mode) we fall back to the origin /media/ URL —
+// playback always works; the torrent still runs so the user still seeds.
+async function initSW () {
+  try {
+    await navigator.serviceWorker.register('/sw.min.js', { scope: './' })
+    const reg = await navigator.serviceWorker.ready
+    wt.createServer({ controller: reg })
+    swEnabled = true
+  } catch (e) { console.warn('sw streaming off, origin fallback:', e.message) }
+}
+
+function ensureTorrent (v, cb) {
+  if (torrents.has(v.id)) return cb?.(torrents.get(v.id))
+  wt.add(`/t/${v.id}.torrent`, tor => {
+    torrents.set(v.id, tor)
+    tor.on('error', e => console.warn(v.id, e.message))
+    cb?.(tor)
+  })
+}
+const dropTorrent = id => { const tor = torrents.get(id); if (tor) { wt.remove(tor); torrents.delete(id) } }
+
+let muted = true
+const feedEl = document.getElementById('feed')
+const io = new IntersectionObserver(entries => {
+  for (const e of entries) {
+    const vid = e.target.querySelector('video')
+    if (!vid) continue
+    if (e.intersectionRatio > .6) { vid.muted = muted; vid.play().catch(()=>{}) }
+    else {
+      vid.pause()
+      // Scrolled away and not liked: stop spending bandwidth on it.
+      const id = e.target.dataset.id
+      if (id && !liked.has(id) && e.intersectionRatio === 0) dropTorrent(id)
+    }
+  }
+}, { threshold: [0, .6] })
+
+function attachStream (v, vid) {
+  let played = false
+  const fallback = () => { if (!played) { played = true; vid.src = `/media/${v.file}` } }
+  if (!swEnabled) fallback()
+  ensureTorrent(v, tor => {
+    if (played) return
+    try { played = true; tor.files[0].streamTo(vid) }
+    catch (e) { played = false; fallback() }
+  })
+  setTimeout(fallback, 4000)   // torrent slow to wire up -> origin wins
+}
+
+function render (videos) {
+  feedEl.innerHTML = ''
+  if (!videos.length) {
+    feedEl.innerHTML = `<div class="empty"><div style="font-size:40px">📼</div>${t('reels.empty')}</div>`
+    return
+  }
+  for (const v of videos) {
+    const el = document.createElement('section')
+    el.className = 'reel'; el.dataset.id = v.id
+    const dur = v.duration ? `${Math.floor(v.duration / 60)}:${String(Math.round(v.duration % 60)).padStart(2, '0')}` : ''
+    el.innerHTML = `
+      <video loop playsinline preload="none"${v.poster ? ` poster="${v.poster}"` : ''}></video>
+      <div class="mutehint"><button data-a="mute">🔇</button></div>
+      <div class="meta">
+        <h2></h2><div class="by"></div>
+        <div class="badges">
+          <span class="badge">▲ ${v.seeders} ${t('reels.seeds')}</span>
+          ${dur ? `<span class="badge">${dur}</span>` : ''}
+          ${v.discovery ? `<span class="badge disc">✦ ${t('reels.discovery')}</span>` : ''}
+          <span class="badge live" style="display:none"></span>
+        </div>
+      </div>
+      <div class="rail">
+        <button data-a="like" class="${liked.has(v.id) ? 'liked' : ''}">❤</button>
+        <div class="count">${v.likes}</div>
+        <button data-a="why">ⓘ</button>
+      </div>`
+    el.querySelector('h2').textContent = v.title
+    el.querySelector('.by').textContent = '@' + v.creator
+    const vid = el.querySelector('video')
+
+    el.querySelector('[data-a=mute]').onclick = ev => {
+      muted = !muted
+      document.querySelectorAll('#feed video').forEach(x => x.muted = muted)
+      document.querySelectorAll('[data-a=mute]').forEach(b => b.textContent = muted ? '🔇' : '🔊')
+      ev.target.textContent = muted ? '🔇' : '🔊'
+    }
+    el.querySelector('[data-a=like]').onclick = async ev => {
+      const btn = ev.target, on = !liked.has(v.id)
+      btn.classList.toggle('liked', on)
+      if (on) { liked.add(v.id); ensureTorrent(v) }        // a like IS a seed
+      else { liked.delete(v.id); dropTorrent(v.id) }
+      saveLiked()
+      const r = await fetch(`/api/${on ? 'like' : 'unlike'}/${v.id}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client: clientId })
+      }).then(r => r.json()).catch(() => null)
+      if (r) el.querySelector('.count').textContent = r.likes
+    }
+    el.querySelector('[data-a=why]').onclick = () => {
+      whyTitle.textContent = t('reels.why')
+      whyBody.textContent = t('reels.why_body')
+      const s = v.score
+      whyMath.textContent = `(${s.seeds} ${t('reels.seeds')} × 3 + ${s.likes} ♥ + 0.5) × ${s.fresh} = ${s.total}`
+      whyDlg.showModal()
+    }
+
+    let wired = false
+    new IntersectionObserver((es, o) => {          // lazy: wire stream near viewport
+      if (es.some(x => x.isIntersecting) && !wired) { wired = true; attachStream(v, vid); o.disconnect() }
+    }, { rootMargin: '150%' }).observe(el)
+    io.observe(el)
+
+    // live swarm badge for this reel while its torrent runs
+    setInterval(() => {
+      const tor = torrents.get(v.id), b = el.querySelector('.badge.live')
+      if (tor && tor.numPeers > 0) { b.style.display = ''; b.textContent = `⇄ ${tor.numPeers} ${t('reels.peers')}` }
+      else b.style.display = 'none'
+    }, 2000)
+
+    feedEl.appendChild(el)
+  }
+}
+
+// Bottom bar: your contribution to the network, live.
+setInterval(() => {
+  const up = wt.torrents.reduce((a, x) => a + x.uploaded, 0)
+  document.getElementById('stats').innerHTML =
+    `<b>⇅</b> ${t('reels.you_seed', { n: [...liked].filter(id => torrents.has(id)).length })}` +
+    ` · ↑ ${(up / 1e6).toFixed(1)}MB` +
+    (wt.uploadSpeed > 5e3 ? ` · ${(wt.uploadSpeed / 1e6).toFixed(2)}MB/s` : '')
+}, 1500)
+
+// ------- upload
+const upDlg = document.getElementById('upDlg')
+document.getElementById('uploadBtn').textContent = '+ ' + t('reels.upload')
+document.getElementById('upTitle').textContent = t('reels.upload')
+document.getElementById('upName').placeholder = t('reels.upload_title')
+document.getElementById('upCreator').placeholder = t('reels.creator')
+document.getElementById('upCreator').value = localStorage.ls_reels_handle || ''
+document.getElementById('upGo').textContent = t('reels.upload_send')
+document.getElementById('uploadBtn').onclick = () => upDlg.showModal()
+document.getElementById('upGo').onclick = () => {
+  const f = document.getElementById('upFile').files[0]
+  if (!f) return
+  localStorage.ls_reels_handle = document.getElementById('upCreator').value
+  const go = document.getElementById('upGo'); go.disabled = true; go.textContent = t('reels.uploading')
+  const prog = document.getElementById('prog'); prog.style.display = 'block'
+  const xhr = new XMLHttpRequest()
+  xhr.open('POST', '/api/upload')
+  xhr.setRequestHeader('Content-Type', f.type || 'video/mp4')
+  xhr.setRequestHeader('X-Reels-Title', encodeURIComponent(document.getElementById('upName').value || f.name))
+  xhr.setRequestHeader('X-Reels-Creator', encodeURIComponent(document.getElementById('upCreator').value || 'anon'))
+  xhr.upload.onprogress = e => prog.firstElementChild.style.width = (100 * e.loaded / e.total) + '%'
+  const reset = () => { go.disabled = false; go.textContent = t('reels.upload_send'); prog.style.display = 'none'; prog.firstElementChild.style.width = 0 }
+  xhr.onload = xhr.onerror = () => {
+    if (xhr.status !== 202) { reset(); return alert((JSON.parse(xhr.responseText || '{}').error) || 'error') }
+    // Accepted — now transcoding server-side (normalize + strip location
+    // metadata). Poll until it goes live in the swarm.
+    go.textContent = t('reels.processing')
+    prog.firstElementChild.style.width = '100%'
+    const { id } = JSON.parse(xhr.responseText)
+    const poll = setInterval(async () => {
+      const s = await fetch(`/api/status/${id}`).then(r => r.json()).catch(() => null)
+      if (!s || s.status === 'processing') return
+      clearInterval(poll); reset()
+      if (s.status === 'live') { upDlg.close(); load() }
+      else alert(t('reels.failed') + (s.error ? `: ${s.error}` : ''))
+    }, 2000)
+  }
+  xhr.send(f)
+}
+
+async function load () {
+  const data = await fetch('/api/feed').then(r => r.json())
+  render(data.videos)
+  // Re-seed everything you've liked, even reels far down the feed: your
+  // likes keep working for the network on every visit.
+  for (const v of data.videos) if (liked.has(v.id)) ensureTorrent(v)
+}
+initSW().then(load)
+</script>
+</body>
+</html>

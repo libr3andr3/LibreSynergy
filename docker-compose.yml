@@ -11,12 +11,13 @@
 #    ./bin/ls up stream          # + OwnCast livestreaming (RTMP in, HLS out)
 #    ./bin/ls up btcpay          # + BTCPay Server (self-hosted Bitcoin checkout)
 #    ./bin/ls up vod             # + WebTorrent tracker (peer-seeded course video)
+#    ./bin/ls up vod reels       # + reels: peer-seeded short-video feed
 #    ./bin/ls up admin           # + the branding/sponsors/messaging dashboard
 #    ./bin/ls up games           # + the Minecraft PoC
 #    ./bin/ls up files           # + the file browser
 #
 #  Optional services are gated behind compose profiles
-#  (payments/stream/btcpay/vod/admin/games/files), so `up` with no profile
+#  (payments/stream/btcpay/vod/reels/admin/games/files), so `up` with no profile
 #  brings up only the core community stack.
 # ============================================================================
 name: ${LS_PROJECT_NAME:-libresynergy}
@@ -32,5 +33,6 @@ include:
   - compose/55-btcpay.yml      # BTCPay Server bitcoin checkout     (profile: btcpay)
   - compose/60-files.yml       # file browser                       (profile: files)
   - compose/65-tracker.yml     # WebTorrent tracker (course VOD)    (profile: vod)
+  - compose/66-reels.yml       # peer-seeded short-video feed       (profile: reels)
   - compose/70-admin.yml       # admin dashboard                    (profile: admin)
   - compose/games/minecraft.yml # Minecraft PoC                     (profile: games)

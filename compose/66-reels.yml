@@ -44,6 +44,6 @@ services:
       LS_DEFAULT_LANG: ${LS_DEFAULT_LANG:-en}
       TZ: ${LS_TZ:-UTC}
     volumes:
-      - ./apps/reels:/app
-      - ./apps/i18n:/i18n:ro            # shared translation catalog (en/es/fr)
+      - ../apps/reels:/app
+      - ../apps/i18n:/i18n:ro            # shared translation catalog (en/es/fr)
       - ${LS_DATA_DIR}/reels:/state

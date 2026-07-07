@@ -1,5 +1,5 @@
-# LibreSynergy v1.0 — edge unit: Caddy reverse proxy + jobs helper.
-# Both run with network_mode: host so Caddy can bind the WireGuard IP
+# LibreSynergy v1.0 — edge unit: the Caddy reverse proxy.
+# Runs with network_mode: host so Caddy can bind the WireGuard IP
 # (${LS_WG_IP}) directly and proxy to the 127.0.0.1 loopback port map.
 #
 # Required env (.env at repo root): LS_BASE_DOMAIN, LS_ADMIN_EMAIL,
@@ -40,20 +40,3 @@ services:
       - ${LS_DATA_DIR}/caddy/config:/config
     cap_add:
       - NET_BIND_SERVICE
-
-  # Small helper app: job-board submissions (9091), join form (9092), site API.
-  jobs:
-    build:
-      context: ..   # Dockerfile + app.py live at the repo root
-    network_mode: host
-    restart: unless-stopped
-    environment:
-      TZ: ${LS_TZ:-UTC}
-      YAYA_LISTEN_HOST: 127.0.0.1
-      YAYA_LISTEN_PORT: "9091"
-      YAYA_UPLOAD_DIR: /var/lib/yaya/jobs
-      YAYA_NOTIFY_EMAIL: ${LS_ADMIN_EMAIL}
-      YAYA_FROM_EMAIL: jobs@${LS_BASE_DOMAIN}
-      YAYA_SMTP_HOST: localhost
-    volumes:
-      - ${LS_DATA_DIR}/jobs:/var/lib/yaya/jobs

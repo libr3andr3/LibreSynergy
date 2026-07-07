@@ -34,17 +34,15 @@
     redir https://{host}{uri} permanent
 }
 
-# Landing site + small first-party endpoints (jobs board, join form, site API).
+# Landing site + first-party endpoints: the join form (payments bridge) and
+# the public events feed (events service) — both from the payments profile.
 {$LS_BASE_DOMAIN} {
     bind {$LS_WG_IP:10.0.0.2}
     import secure_headers
-    handle /jobs/submit {
-        reverse_proxy 127.0.0.1:9091
-    }
     handle /join {
         reverse_proxy 127.0.0.1:9092
     }
-    handle /api/* {
+    handle /api/events* {
         reverse_proxy 127.0.0.1:9102
     }
     handle {

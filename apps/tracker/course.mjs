@@ -1,4 +1,4 @@
-// verypowerful course VOD — create / seed / download over our sovereign swarm.
+// LibreSynergy course VOD — create / seed / download over our sovereign swarm.
 //
 // PeerTube model for teaching content: static course files distributed by
 // BitTorrent/WebTorrent. Free learners stream-and-seed from the browser; the
@@ -13,9 +13,11 @@
 import WebTorrent from 'webtorrent'
 import fs from 'fs'
 
+// Set TRACKER_HOST to your tracker hostname, e.g. tracker.example.com
+const TRACKER = process.env.TRACKER_HOST || 'tracker.example.com'
 const ANNOUNCE = [
-  'wss://tracker.yaya.sh',            // browser (WebRTC) peers
-  'https://tracker.yaya.sh/announce', // classic (TCP/uTP) peers
+  `wss://${TRACKER}`,            // browser (WebRTC) peers
+  `https://${TRACKER}/announce`, // classic (TCP/uTP) peers
 ]
 const [cmd, arg1, arg2] = process.argv.slice(2)
 

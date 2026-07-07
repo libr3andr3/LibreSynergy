@@ -126,10 +126,11 @@ map has never heard of is not forwarded to your node, no matter how correct
 the node is. This split is by design (the relay only touches hostnames it is
 told about) — but it means every new web hostname is a **two-machine change**.
 
-**Fix:**
+**Fix:** re-run the route (idempotent — it re-asserts the map entry on the
+relay and reloads nginx):
 
 ```bash
-ls-route push      # regenerate + install the SNI map on the VPS, reload nginx
+ls route web <sub> <port>
 ls doctor          # confirms map coverage for every hostname
 ```
 
@@ -141,7 +142,7 @@ openssl s_client -connect <VPS_IP>:443 -servername new.example.org </dev/null \
   | openssl x509 -noout -subject
 ```
 
-Wrong or no certificate → the map is stale → `ls-route push`.
+Wrong or no certificate → the map is stale → re-run the route command.
 
 ## Housekeeping
 

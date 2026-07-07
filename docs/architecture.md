@@ -5,7 +5,7 @@
 ```
                     Internet
                        |
-              +--------v---------+   public IPv4; ports 80/443 (+ optional game ports)
+              +--------v---------+   public IPv4; ports 80/443 (+ optional stream ports, e.g. RTMP)
               |    VPS  relay    |   nginx stream (SNI peek) + WireGuard
               |  "the dumb pipe" |   sees ONLY ciphertext and hostnames
               +--------+---------+
@@ -17,7 +17,7 @@
               +------------------+   all data lives here, under ${LS_DATA_DIR}
 ```
 
-The design (the "VeryPowerful" relay pattern) splits the job in two:
+The design (the sovereign-relay pattern) splits the job in two:
 
 - **The VPS** owns nothing but a public IP. nginx's stream module peeks at
   the TLS SNI of each incoming connection — the hostname the client asks
@@ -30,9 +30,9 @@ The design (the "VeryPowerful" relay pattern) splits the job in two:
 
 ## The request path
 
-1. A member opens `https://chat.mibarrio.pe`.
+1. A member opens `https://chat.acme.studio`.
 2. DNS resolves to the VPS. The browser starts a TLS handshake to VPS:443.
-3. nginx on the VPS reads the SNI (`chat.mibarrio.pe`), finds it in its SNI
+3. nginx on the VPS reads the SNI (`chat.acme.studio`), finds it in its SNI
    map, and pipes the raw bytes over WireGuard to the node.
 4. Caddy on the node completes the handshake (it holds the certificate),
    applies security headers and edge rules, and proxies to the Cinny chat
@@ -43,7 +43,7 @@ The design (the "VeryPowerful" relay pattern) splits the job in two:
 Certificates are issued and renewed by Caddy on the node via Let's Encrypt;
 the ACME traffic flows through the relay like any other request.
 
-TCP services that are not websites (a game server, for instance) skip Caddy:
+TCP services that are not websites (the RTMP ingest, for instance) skip Caddy:
 nginx forwards the port as a raw stream to the service's WireGuard-bound
 address on the node. See [add-a-service.md](add-a-service.md).
 
@@ -59,14 +59,17 @@ install — scripts, docs, and support all assume them. Do not renumber.
 | Cinny (chat client) | 127.0.0.1 | 8114 | `${LS_CHAT}` |
 | Frappe LMS (classroom) | 127.0.0.1 | 8100 | `${LS_LEARN}` |
 | Jitsi web (webinars) | 127.0.0.1 | 8200 | `${LS_MEET}` |
-| Open WebUI (AI workspace) | 127.0.0.1 | 3000 | `${LS_APP}` |
-| LiteLLM (AI gateway) | 127.0.0.1 | 4000 | internal only |
-| Landing bundle (public site, member and premium portals) | 127.0.0.1 | 9091 / 9092 / 9102 | `${LS_BASE_DOMAIN}`, `${LS_PREMIUM}` |
-| BTCPay Server *(profile: payments)* | 127.0.0.1 | 8500 | `${LS_PAY}` |
+| OwnCast web/HLS *(profile: stream)* | 127.0.0.1 | 8600 | `${LS_LIVE}` |
+| OwnCast RTMP ingest *(profile: stream)* | `${LS_WG_IP}` | 1935 | VPS:1935 (raw TCP) |
+| Payments bridge — checkout, account, join form *(profile: payments)* | 127.0.0.1 | 9092 | `${LS_PREMIUM}`, `${LS_BASE_DOMAIN}/join` |
+| BTCPay Server *(profile: btcpay)* | 127.0.0.1 | 8500 | `${LS_PAY}` |
 | membership-sync *(profile: payments)* | 127.0.0.1 | 9101 | internal only |
-| Minecraft *(profile: games)* | `${LS_WG_IP}` | 25565 | VPS:25565 (raw TCP) |
+| events — schedule + announcements *(profile: payments)* | 127.0.0.1 | 9102 | `${LS_BASE_DOMAIN}/api/events` |
+| WebTorrent tracker *(profile: vod)* | 127.0.0.1 | 9120 | `${LS_TRACKER}` |
+| Reels *(profile: reels)* | 127.0.0.1 | 9130 | `${LS_REELS}` |
+| Admin dashboard *(profile: admin)* | 127.0.0.1 | 9110 | `${LS_ADMIN}` |
 
-Note the one deliberate exception: Minecraft binds the node's WireGuard
+Note the one deliberate exception: the RTMP ingest binds the node's WireGuard
 address instead of loopback, precisely so the relay can reach it as a stream.
 
 ## Identity, membership, and entitlements
@@ -82,7 +85,7 @@ disabling a person in one place disables them everywhere.
 - `members` — everyone who accepts an invite. Free. Grants chat, classroom,
   and meetings.
 - `premium` — paying supporters. Grants whatever the community defines:
-  premium courses, the premium portal, extra AI usage.
+  premium courses, members-only streams and rooms, the premium portal.
 
 Applications read group membership from the OIDC token claims at login, so
 an entitlement change takes effect the next time the app refreshes the
@@ -134,9 +137,6 @@ A few flows worth knowing:
 - **Jitsi media.** Signaling is HTTPS through the normal web path; the
   audio/video media itself (encrypted RTP over UDP) is forwarded by the
   relay's stream config over WireGuard to the node's videobridge.
-- **AI.** Open WebUI talks only to LiteLLM on loopback; LiteLLM is the one
-  place model providers (local or remote) are configured, so the AI data
-  path is auditable in a single config.
 - **Email.** Authentik sends magic links through the SMTP account you
   configure in `${LS_SECRETS_DIR}/smtp.env`. This is the stack's only
   required outbound dependency.

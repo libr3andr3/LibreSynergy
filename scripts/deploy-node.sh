@@ -11,21 +11,14 @@
 #              Authentik/Frappe/Jitsi propagation)
 #    4. force-recreate the caddy container so the edge serves the new tree
 #
-#  Parameters (env vars; sensible verified defaults):
+#  Parameters (env vars):
 #    NODE_SSH        ssh alias of the node          (default: $LS_NODE_SSH or "node")
-#    NODE_DIR        deploy root on the node        (default: /home/yaya/docker — see below)
-#    CADDY_PROJECT   compose project owning caddy   (default: "yaya")
+#    NODE_DIR        deploy root on the node        (REQUIRED — the directory whose
+#                    www/ is bind-mounted into caddy at /srv/www; verify with:
+#                    ssh <node> docker inspect <caddy> --format '{{json .Mounts}}')
+#    CADDY_PROJECT   compose project owning caddy   (default: $LS_PROJECT_NAME or "libresynergy")
 #    PUSH_ENV=0      don't overwrite the node's libresynergy.env
 #    SKIP_CADDY=1    don't recreate caddy
-#
-#  ┌──────────────────────────────────────────────────────────────────────────┐
-#  │ NODE_DIR — VERIFIED 2026-07-06 against the live node:                   │
-#  │   caddy container:  yaya-caddy-1                                        │
-#  │   compose project:  yaya   (working dir /home/yaya/docker)              │
-#  │   www bind mount:   /home/yaya/docker/www  →  /srv/www                  │
-#  │ If you point this at a different node, verify first with:               │
-#  │   ssh <node> docker inspect <caddy> --format '{{json .Mounts}}'         │
-#  └──────────────────────────────────────────────────────────────────────────┘
 #
 #  Safe to re-run: rsync is incremental, apply-branding is idempotent.
 # ============================================================================
@@ -40,8 +33,8 @@ head_(){ printf '\n==> %s\n' "$*"; }
 set -a; . "$ROOT/libresynergy.env"; set +a
 
 NODE_SSH="${NODE_SSH:-${LS_NODE_SSH:-node}}"
-NODE_DIR="${NODE_DIR:-/home/yaya/docker}"          # ← VERIFIED default, see box above
-CADDY_PROJECT="${CADDY_PROJECT:-yaya}"
+NODE_DIR="${NODE_DIR:?set NODE_DIR to the deploy root on the node — the dir whose www/ is mounted at /srv/www in caddy}"
+CADDY_PROJECT="${CADDY_PROJECT:-${LS_PROJECT_NAME:-libresynergy}}"
 
 echo "LibreSynergy → deploying to ${NODE_SSH}:${NODE_DIR} (brand: ${LS_BRAND_NAME:-?} @ ${LS_BASE_DOMAIN:-?})"
 

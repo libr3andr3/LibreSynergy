@@ -2,7 +2,7 @@
 
 LibreSynergy is reachable from the internet **without** handing your traffic to
 Cloudflare, Tailscale, or ngrok. TLS terminates on *your* machine; the public
-VPS is a dumb L4 pipe that never decrypts. This is the [VeryPowerful](https://github.com/) pattern.
+VPS is a dumb L4 pipe that never decrypts. This is the sovereign-relay pattern.
 
 ```
                          ┌──────────────────── your community's machine ("node") ──────────────────┐
@@ -14,7 +14,7 @@ VPS is a dumb L4 pipe that never decrypts. This is the [VeryPowerful](https://gi
   reads SNI, NEVER       │    └─ meet.  → 127.0.0.1:8200   (Jitsi)                                  │
   decrypts ──────────────┼──► WireGuard tunnel ────────────► TLS terminates HERE, on your keys      │
     │                    └──────────────────────────────────────────────────────────────────────────┘
-    │  raw TCP :25565 (Minecraft, DB, SSH, …) ── separate stream, no TLS ──►
+    │  raw TCP :1935 (RTMP ingest, DB, SSH, …) ── separate stream, no TLS ──►
 ```
 
 ## Two kinds of route

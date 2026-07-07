@@ -23,3 +23,12 @@ apps/*/node_modules/
 
 __pycache__/
 *.pyc
+
+# Rendered brand outputs — generated from the *.template.* sources by
+# apply-branding.sh (run via `ls init` / `ls brand`). Only templates are tracked.
+www/index.html
+www/robots.txt
+www/sitemap.xml
+www/app/index.html
+www/app/manifest.webmanifest
+www/chat/config.json

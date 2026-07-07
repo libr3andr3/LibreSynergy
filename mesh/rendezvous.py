@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-verypowerful rendezvous — STUN-style UDP tracker for the community mesh.
+LibreSynergy rendezvous — STUN-style UDP tracker for the community mesh.
 
 Runs on the public VPS. Never touches stream bytes: it only observes each
 peer's NAT-reflexive address and coordinates simultaneous UDP hole punches.

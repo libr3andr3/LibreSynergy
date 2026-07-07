@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-verypowerful content signing — provenance for the sovereign mesh.
+LibreSynergy content signing — provenance for the sovereign mesh.
 
 The creator signs; any untrusted peer may serve; every viewer verifies.
 This is what makes P2P distribution safe: you never trust the peer that
@@ -31,7 +31,7 @@ ordering (see sign_stream_segment()).
 """
 import argparse, base64, hashlib, json, os, subprocess, sys, tempfile, time
 
-SIG_PREFIX = "yaya-content-sig-v1"
+SIG_PREFIX = "ls-content-sig-v1"
 
 def _openssl(args, inp=None):
     r = subprocess.run(["openssl"] + args, input=inp, capture_output=True)

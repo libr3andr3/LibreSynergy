@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-verypowerful segment relay v0 — the two proven halves, joined.
+LibreSynergy segment relay v0 — the two proven halves, joined.
 
 Creator signs an HLS segment; an origin peer serves it over a hole-punched
 UDP path; the viewer verifies the creator signature on arrival. No relay in
@@ -139,7 +139,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("serve", "fetch"):
         p = sub.add_parser(name)
-        p.add_argument("--server", default="stun.yaya.sh"); p.add_argument("--port", type=int, default=3478)
+        p.add_argument("--server", default="stun.example.com"); p.add_argument("--port", type=int, default=3478)
         p.add_argument("--id", required=True); p.add_argument("--swarm", default="s1")
         p.add_argument("--timeout", type=int, default=45)
         if name == "serve":

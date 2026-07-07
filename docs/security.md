@@ -20,8 +20,8 @@ physical location never appears in DNS.
 reachable only through Caddy, which fronts it with TLS and security headers
 (HSTS, `X-Content-Type-Options: nosniff`, frame-ancestors restrictions,
 referrer and permissions policies). The single deliberate exception is a
-stream-routed service like Minecraft, which binds the WireGuard address —
-and is therefore treated as internet-exposed (see below).
+stream-routed service like the livestream RTMP ingest, which binds the
+WireGuard address — and is therefore treated as internet-exposed (see below).
 
 **Admin APIs are blocked at the edge.** The Synapse admin API
 (`/_synapse/admin/...`) is never routed publicly — Caddy refuses it before
@@ -54,7 +54,7 @@ deliberately; the relay is cheap and stateless, so replacing it is a
 
 **A compromised relay reaches WireGuard-bound services.** The relay holds a
 WireGuard key that can reach anything bound to `${LS_WG_IP}` — which is
-exactly the stream-routed services (e.g. Minecraft), and only those. Treat
+exactly the stream-routed services (e.g. the RTMP ingest), and only those. Treat
 every stream route as directly internet-exposed: no TLS, no SSO, no headers
 in front of it, only the service's own protocol security. Enable its native
 authentication and keep it updated. Loopback-bound services are not

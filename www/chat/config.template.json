@@ -1,0 +1,15 @@
+{
+  "defaultHomeserver": 0,
+  "homeserverList": ["__LS_MATRIX__"],
+  "allowCustomHomeservers": false,
+  "featuredCommunities": {
+    "openAsDefault": false,
+    "spaces": [],
+    "rooms": [],
+    "servers": ["__LS_MATRIX__"]
+  },
+  "hashRouter": {
+    "enabled": false,
+    "basename": "/"
+  }
+}

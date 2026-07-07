@@ -1,4 +1,4 @@
-// verypowerful WebTorrent tracker — sovereign peer discovery for course VOD.
+// LibreSynergy WebTorrent tracker — sovereign peer discovery for course VOD.
 //
 // A WebSocket tracker: browser (WebTorrent) and desktop peers register here to
 // find each other in a swarm. Rides wss://tracker.<domain> over the relay's
@@ -26,5 +26,5 @@ server.on('start', () => { started++; })
 server.on('complete', () => { completed++; console.log(`swarm complete events: ${completed}`) })
 
 server.listen(PORT, HOST, () => {
-  console.log(`verypowerful tracker up on ${HOST}:${PORT}`)
+  console.log(`LibreSynergy tracker up on ${HOST}:${PORT}`)
 })

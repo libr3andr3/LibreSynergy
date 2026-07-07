@@ -36,19 +36,19 @@ and overrides the defaults in `system.css`.
 Text and URLs are never baked into committed files either. Source files use
 double-underscore placeholders and are named `*.template.<ext>`:
 
-| Placeholder            | Comes from                                | Example (Yaya)              |
+| Placeholder            | Comes from                                | Example              |
 |------------------------|-------------------------------------------|-----------------------------|
-| `__LS_BRAND_NAME__`    | `LS_BRAND_NAME`                            | `Yaya`                      |
+| `__LS_BRAND_NAME__`    | `LS_BRAND_NAME`                            | `Acme Studio`                      |
 | `__LS_BRAND_TAGLINE__` | `LS_BRAND_TAGLINE`                         | `A self-hosted community`   |
 | `__LS_POWERED_BY__`    | `LS_POWERED_BY`                            | `LibreSynergy`              |
-| `__LS_BASE_DOMAIN__`   | `LS_BASE_DOMAIN`                           | `yaya.sh`                   |
-| `__LS_APP__`           | `LS_APP` (default `app.<base>`)            | `app.yaya.sh`               |
-| `__LS_CHAT__`          | `LS_CHAT` (default `chat.<base>`)          | `chat.yaya.sh`              |
-| `__LS_LEARN__`         | `LS_LEARN` (default `learn.<base>`)        | `learn.yaya.sh`             |
-| `__LS_MEET__`          | `LS_MEET` (default `meet.<base>`)          | `meet.yaya.sh`              |
-| `__LS_LIVE__`          | `LS_LIVE` (default `live.<base>`)          | `live.yaya.sh`              |
-| `__LS_PREMIUM__`       | `LS_PREMIUM` (default `premium.<base>`)    | `premium.yaya.sh`           |
-| `__LS_AUTH__`          | `LS_AUTH` (default `auth.<base>`)          | `auth.yaya.sh`              |
+| `__LS_BASE_DOMAIN__`   | `LS_BASE_DOMAIN`                           | `acme.studio`                   |
+| `__LS_APP__`           | `LS_APP` (default `app.<base>`)            | `app.acme.studio`               |
+| `__LS_CHAT__`          | `LS_CHAT` (default `chat.<base>`)          | `chat.acme.studio`              |
+| `__LS_LEARN__`         | `LS_LEARN` (default `learn.<base>`)        | `learn.acme.studio`             |
+| `__LS_MEET__`          | `LS_MEET` (default `meet.<base>`)          | `meet.acme.studio`              |
+| `__LS_LIVE__`          | `LS_LIVE` (default `live.<base>`)          | `live.acme.studio`              |
+| `__LS_PREMIUM__`       | `LS_PREMIUM` (default `premium.<base>`)    | `premium.acme.studio`           |
+| `__LS_AUTH__`          | `LS_AUTH` (default `auth.<base>`)          | `auth.acme.studio`              |
 | `__LS_COLOR_BRAND__`   | `LS_COLOR_BRAND`                           | `#7c6cff`                   |
 | `__LS_COLOR_ACCENT__`  | `LS_COLOR_ACCENT`                          | `#ffc15e`                   |
 | `__LS_COLOR_INK__`     | `LS_COLOR_INK`                             | `#0b0b12`                   |
@@ -115,24 +115,23 @@ LS_SKIP_SERVICES=1 bash scripts/apply-branding.sh
 ## `scripts/deploy-node.sh` — ship it
 
 ```bash
-bash scripts/deploy-node.sh                       # defaults: node → /home/yaya/docker
-NODE_SSH=node2 NODE_DIR=/opt/ls bash scripts/deploy-node.sh
-PUSH_ENV=0  bash scripts/deploy-node.sh           # keep the node's own env
-SKIP_CADDY=1 bash scripts/deploy-node.sh          # don't bounce the edge
+NODE_DIR=/opt/libresynergy bash scripts/deploy-node.sh          # NODE_DIR is required
+NODE_SSH=mynode NODE_DIR=/opt/ls bash scripts/deploy-node.sh
+PUSH_ENV=0  NODE_DIR=/opt/libresynergy bash scripts/deploy-node.sh   # keep the node's own env
+SKIP_CADDY=1 NODE_DIR=/opt/libresynergy bash scripts/deploy-node.sh  # don't bounce the edge
 ```
 
 Steps: (1) rsync `www/` to `$NODE_DIR/www/` — **additive, never `--delete`**,
-so node-local content (VODs, jobs pages, uploads) survives; (2) rsync
+so node-local content (VODs, uploads) survives; (2) rsync
 `scripts/apply-branding.sh` and `libresynergy.env` to
 `$NODE_DIR/libresynergy/` (the node's previous env is kept as
 `libresynergy.env.bak-<timestamp>` when it differs); (3) run apply-branding on
 the node; (4) `docker compose -p $CADDY_PROJECT up -d --force-recreate caddy`
-(project default `yaya`), with a `docker restart` fallback. Ends with an HTTPS
-smoke test against `https://$LS_APP`.
+(project default `libresynergy`), with a `docker restart` fallback. Ends with
+an HTTPS smoke test against `https://$LS_APP`.
 
-`NODE_DIR=/home/yaya/docker` and `CADDY_PROJECT=yaya` were **verified against
-the live node** (caddy `yaya-caddy-1`, `www` bind-mounted at `/srv/www`).
-Pointing at a new node? Verify first:
+`NODE_DIR` must be the directory whose `www/` is bind-mounted into caddy at
+`/srv/www` — verify before the first deploy:
 `ssh <node> docker inspect <caddy> --format '{{json .Mounts}}'`.
 
 ## Adding a new branded page

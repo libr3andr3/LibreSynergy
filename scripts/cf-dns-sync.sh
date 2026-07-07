@@ -56,16 +56,9 @@ ensure_a(){ # ensure_a <fqdn>
 
 # The full host set: core + optional units. Harmless to create ahead of enabling
 # a unit — the relay just has no SNI entry until you run ls-route.
-for sub in "" www app auth chat matrix learn meet live premium btcpay rtmp play admin; do
+for sub in "" www app auth chat matrix learn meet live premium btcpay rtmp admin tracker reels; do
   fqdn="${sub:+$sub.}$DOMAIN"
   ensure_a "$fqdn"
 done
 
-# Minecraft SRV so vanilla clients can use play.<domain> without a port.
-cur=$(have SRV "_minecraft._tcp.play.$DOMAIN")
-if [ -n "$cur" ]; then echo "  ok   SRV _minecraft._tcp.play.$DOMAIN"; elif [ "$DRY" = "--dry" ]; then echo "  MAKE SRV _minecraft._tcp.play.$DOMAIN -> play.$DOMAIN:25565"; else
-  api -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE/dns_records" \
-    --data "{\"type\":\"SRV\",\"name\":\"_minecraft._tcp.play.$DOMAIN\",\"data\":{\"priority\":0,\"weight\":0,\"port\":25565,\"target\":\"play.$DOMAIN\"},\"ttl\":300}" \
-    | python3 -c "import json,sys; d=json.load(sys.stdin); print('  made SRV -> play.$DOMAIN:25565' if d['success'] else '  FAIL SRV: %s' % d['errors'])"
-fi
 echo "done."

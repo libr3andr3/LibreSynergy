@@ -3,11 +3,11 @@
 # Three pure-stdlib Python sidecars, all network_mode: host, reverse-proxied by Caddy:
 #   payments-bridge  -> serves https://${LS_PREMIUM} (Stripe + BTCPay checkout/webhooks)
 #   membership-sync  -> 127.0.0.1:9101 (reconciles Authentik groups -> Matrix spaces / Frappe)
-#   events           -> Matrix event announcer (no inbound listener)
+#   events           -> event schedule + Matrix announcer (public feed on 127.0.0.1:9102)
 #
 # Enable with:  docker compose --profile payments up -d
-# Operator supplies the app code at ./apps/<name>/app.py (sources are out of scope
-# for this distribution; copy them from your running instance).
+# The app sources ship with the repo at ./apps/<name>/app.py — pure stdlib,
+# short, and written to be read before you trust them with your revenue.
 #
 # Before first start, also copy secrets/spaces.json.example to
 # ${LS_SECRETS_DIR}/spaces.json — if the file is missing, Docker will create a
@@ -32,9 +32,16 @@ services:
     environment:
       - TZ=${LS_TZ:-UTC}
       - LS_DEFAULT_LANG=${LS_DEFAULT_LANG:-en}
+      - PUBLIC_BASE_URL=https://${LS_PREMIUM:-premium.${LS_BASE_DOMAIN}}
+      - COMMUNITY_CHAT_URL=https://${LS_CHAT:-chat.${LS_BASE_DOMAIN}}
+      - AUTHENTIK_PUBLIC_HOST=${LS_AUTH:-auth.${LS_BASE_DOMAIN}}
+      - BRAND_NAME=${LS_BRAND_NAME:-Community}
+      - BRAND_BASE_URL=https://${LS_BASE_DOMAIN}
+      - PREMIUM_PRICE_USD=${LS_PREMIUM_PRICE_USD:-20}
+      - PREMIUM_GROUP=${LS_PREMIUM_GROUP:-premium}
     volumes:
-      - ./apps/payments_bridge/app.py:/app/app.py:ro
-      - ./apps/i18n:/i18n:ro            # shared translation catalog (en/es/fr)
+      - ../apps/payments_bridge/app.py:/app/app.py:ro
+      - ../apps/i18n:/i18n:ro            # shared translation catalog (en/es/fr)
       - ${LS_DATA_DIR}/payments_bridge:/state
 
   membership-sync:
@@ -56,9 +63,14 @@ services:
       - SPACES_FILE=/config/spaces.json
       - WELCOME_ENABLED=1
       - WELCOME_STATE=/state/welcomed.json
-      - APP_URL=https://${LS_APP}
+      - APP_URL=https://${LS_APP:-app.${LS_BASE_DOMAIN}}
+      - MATRIX_HS_URL=http://127.0.0.1:8008
+      - MATRIX_SERVER_NAME=${LS_MATRIX:-matrix.${LS_BASE_DOMAIN}}
+      - FRAPPE_URL=http://127.0.0.1:8100
+      - FRAPPE_HOST=${LS_LEARN:-learn.${LS_BASE_DOMAIN}}
+      - PREMIUM_GROUP=${LS_PREMIUM_GROUP:-premium}
     volumes:
-      - ./apps/membership_sync/app.py:/app/app.py:ro
+      - ../apps/membership_sync/app.py:/app/app.py:ro
       - ${LS_SECRETS_DIR}/spaces.json:/config/spaces.json:ro   # group -> Matrix space map (operator-edited; see secrets/spaces.json.example)
       - ${LS_DATA_DIR}/membership_sync:/state
 
@@ -75,6 +87,9 @@ services:
     environment:
       - TZ=${LS_TZ:-UTC}
       - STATE_DIR=/state
+      - MATRIX_HS_URL=http://127.0.0.1:8008
+      - APP_URL=https://${LS_APP:-app.${LS_BASE_DOMAIN}}
+      - DEFAULT_EVENT_ROOM=${LS_BRAND_NAME:-Community} Live
     volumes:
-      - ./apps/events/app.py:/app/app.py:ro
+      - ../apps/events/app.py:/app/app.py:ro
       - ${LS_DATA_DIR}/events:/state

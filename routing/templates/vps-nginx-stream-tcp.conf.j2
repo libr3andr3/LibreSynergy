@@ -3,7 +3,7 @@
 # /etc/nginx/stream.d/{{ NAME }}.conf and included from the stream {} block.
 #
 # Unlike the HTTPS path there is NO ssl_preread and NO proxy_protocol: most
-# non-HTTP protocols (Minecraft, Postgres, SSH, game servers) speak neither.
+# non-HTTP protocols (RTMP, Postgres, SSH) speak neither.
 # The relay is a dumb L4 pipe straight to the node over WireGuard.
 server {
     listen {{ PORT }};

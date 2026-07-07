@@ -39,7 +39,7 @@ fi
 systemctl enable --now wg-quick@wg0 2>/dev/null || wg-quick up wg0 || true
 
 echo "▸ creating data tree under ${LS_DATA_DIR:-$ROOT/data}"
-install -d -m 755 "${LS_DATA_DIR:-$ROOT/data}"/{caddy,authentik,matrix,frappe,jitsi,minecraft,files,jobs}
+install -d -m 755 "${LS_DATA_DIR:-$ROOT/data}"/{caddy,authentik,matrix,frappe,jitsi,files}
 
 echo
 echo "✓ node ready. This node's WireGuard public key:"

@@ -13,6 +13,5 @@ Allow: /
 # Gated app internals + first-party form/API endpoints (no SEO value)
 Disallow: /app/
 Disallow: /api/
-Disallow: /jobs/submit
 
 Sitemap: https://__LS_BASE_DOMAIN__/sitemap.xml

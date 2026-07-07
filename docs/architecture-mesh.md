@@ -12,7 +12,7 @@ mesh its own members run — without ever asking permission from a platform.
 ```
   ┌────────────────────────────────────────────────────────────────────┐
   │  TOP — standard web (onboarding, zero install)                       │
-  │  Stranger lands on yaya.sh over normal HTTPS (via the sovereign      │
+  │  Stranger lands on your domain over normal HTTPS (via the sovereign      │
   │  relay). Watches the livestream (OwnCast HLS), browses content,      │
   │  signs up passwordless. Works on any device, any network.           │
   ├────────────────────────────────────────────────────────────────────┤
@@ -22,7 +22,7 @@ mesh its own members run — without ever asking permission from a platform.
   │  Both settle to the SAME Authentik entitlement group.               │
   ├────────────────────────────────────────────────────────────────────┤
   │  BOTTOM — P2P mesh (end of funnel, decentralized)                    │
-  │  True members install the lightweight yaya client. It carries the    │
+  │  True members install the lightweight member client. It carries the    │
   │  P2P engine: it joins swarms via the rendezvous server, hole-punches │
   │  to other members, and RELAYS signed stream segments peer-to-peer.   │
   │  The community becomes its own CDN. Load leaves the origin.          │
@@ -75,7 +75,7 @@ unaltered — even though the origin server never touched that transfer.
 
 ## Coordination: the rendezvous (STUN) server
 
-`stun.yaya.sh` (a hardened daemon on the public VPS) is a pure coordinator. It
+`stun.<your-domain>` (a hardened daemon on the public VPS) is a pure coordinator. It
 observes each peer's NAT-reflexive address and introduces peers so they can
 hole-punch a direct UDP path — then it steps out of the way. It never sees a
 stream byte. Cone NATs punch directly; symmetric-NAT peers fall back to a TURN
@@ -85,9 +85,9 @@ relay (a mesh member with a public IP can *be* that relay).
 
 | Piece | Where | Status |
 |-------|-------|--------|
-| Rendezvous / hole-punch | `verypowerful/rendezvous.py` (VPS), `peer.py` | proven: 64KB direct transfer across two NATs, md5-verified |
-| Content signing | `verypowerful/content_sign.py` | proven: honest / tamper / impostor / forgery cases |
-| Web tier | OwnCast, Matrix, Frappe, Jitsi, Authentik | live on yaya.sh |
+| Rendezvous / hole-punch | `mesh/rendezvous.py` (VPS), `peer.py` | proven: 64KB direct transfer across two NATs, md5-verified |
+| Content signing | `mesh/content_sign.py` | proven: honest / tamper / impostor / forgery cases |
+| Web tier | OwnCast, Matrix, Frappe, Jitsi, Authentik | live on the flagship instance |
 | Payments | Stripe + BTCPay (BTC + Monero) → Authentik group | Stripe live; BTCPay syncing |
 
 ## Measured crypto overhead (real 406 KB OwnCast 720p segment)
@@ -125,7 +125,7 @@ entitlement check — sovereignty and paid access from the same primitive.
 - Combine the two proven halves: sign an OwnCast segment → serve it over the
   hole-punched path → verify on arrival (the segment-relay v0).
 - TURN fallback for symmetric NATs.
-- The lightweight yaya client that carries the P2P engine (desktop/mobile first,
+- The lightweight member client that carries the P2P engine (desktop/mobile first,
   engine dormant until the swarm is ready).
 - Standardize the message formats into a versioned **protocol** so any client
   can run functions on any member's node.

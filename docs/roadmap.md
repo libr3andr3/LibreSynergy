@@ -49,7 +49,7 @@ Strangers uploading video = legal exposure from day one.
   member write. This dogfoods the stack and gives moderation tools for free.
 - Deep links `/r/<id>` with OG preview cards so shares unfurl in
   WhatsApp/iMessage/Discord — sharing *into* big tech is the growth loop.
-- Download-with-watermark ("made on yaya") for cross-posting to TikTok/IG —
+- Download-with-watermark (your brand) for cross-posting to TikTok/IG —
   their audience becomes the funnel.
 
 ## Phase 6 — Creator money (the migration engine)
@@ -70,9 +70,9 @@ Strangers uploading video = legal exposure from day one.
 ## Phase 8 — Federation (the actual revolution)
 - Instance-to-instance feed subscription over the existing mesh (Ed25519
   instance identity already designed): a creator's own LibreSynergy instance
-  *is* their channel; yaya.sh is just the biggest node, not the platform.
+  *is* their channel; the flagship instance is just the biggest node, not the platform.
 - ActivityPub bridge (PeerTube-compatible) so the existing fediverse can
-  follow Yaya creators — instant distribution to people who already chose
+  follow LibreSynergy creators — instant distribution to people who already chose
   open platforms.
 - Cross-instance swarms already work: same infohash = same swarm, wherever
   the .torrent came from.

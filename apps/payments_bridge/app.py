@@ -60,8 +60,8 @@ OIDC_CLIENT_ID = env("OIDC_CLIENT_ID", required=True)
 OIDC_CLIENT_SECRET = env("OIDC_CLIENT_SECRET", required=True)
 OIDC_REDIRECT_URI = env("OIDC_REDIRECT_URI", required=True)
 SESSION_SECRET = env("SESSION_SECRET", required=True).encode()
-PUBLIC_BASE_URL = env("PUBLIC_BASE_URL", "https://premium.yaya.sh").rstrip("/")
-CHAT_URL = env("COMMUNITY_CHAT_URL", "https://chat.yaya.sh")
+PUBLIC_BASE_URL = env("PUBLIC_BASE_URL", required=True).rstrip("/")
+CHAT_URL = env("COMMUNITY_CHAT_URL", required=True)
 MEMBERSHIP_SYNC_URL = env("MEMBERSHIP_SYNC_URL", "http://127.0.0.1:9101/reconcile")
 PRICE_USD = env("PREMIUM_PRICE_USD", "20")
 LISTEN_HOST = env("LISTEN_HOST", "127.0.0.1")
@@ -71,7 +71,9 @@ STATE_DIR = env("STATE_DIR", "/state")
 AUTHENTIK_URL = env("AUTHENTIK_URL", "http://127.0.0.1:8300").rstrip("/")
 AUTHENTIK_TOKEN = env("AUTHENTIK_TOKEN", required=True)
 PREMIUM_GROUP = env("PREMIUM_GROUP", "premium")
-AUTHENTIK_PUBLIC_HOST = env("AUTHENTIK_PUBLIC_HOST", "auth.yaya.sh")
+AUTHENTIK_PUBLIC_HOST = env("AUTHENTIK_PUBLIC_HOST", required=True)
+BRAND_NAME = env("BRAND_NAME", "Community")
+BRAND_BASE_URL = env("BRAND_BASE_URL", "").rstrip("/")
 AUTHENTIK_EMAIL_STAGE = env("AUTHENTIK_EMAIL_STAGE", "")
 
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", "")
@@ -419,7 +421,7 @@ def solana_new_invoice(username):
 def solana_pay_uri(ref):
     q = urllib.parse.urlencode({
         "amount": PRICE_USD, "spl-token": SOLANA_USDC_MINT, "reference": ref,
-        "label": "Yaya Premium", "message": "Premium membership — one month",
+        "label": f"{BRAND_NAME} Premium", "message": "Premium membership — one month",
     })
     return f"solana:{SOLANA_MERCHANT_ADDRESS}?{q}"
 
@@ -569,9 +571,9 @@ def page(title, body, lang="en"):
     return f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title>
-<link rel="icon" href="https://yaya.sh/brand/favicon.ico" sizes="any">
-<link rel="icon" type="image/svg+xml" href="https://yaya.sh/brand/app-icon.svg">
-<link rel="stylesheet" href="https://yaya.sh/brand/system.css">
+<link rel="icon" href="{BRAND_BASE_URL}/brand/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="{BRAND_BASE_URL}/brand/app-icon.svg">
+<link rel="stylesheet" href="{BRAND_BASE_URL}/brand/system.css">
 <meta name="theme-color" content="#0d0d12">
 <style>
 :root{{--bg:var(--ls-ink);--card:var(--ls-surface);--accent:var(--ls-brand);--text:var(--ls-text);--muted:var(--ls-muted)}}
@@ -593,7 +595,7 @@ font-size:16px;font-weight:700;cursor:pointer;text-decoration:none;margin-top:12
 .brandlogo{{display:block;height:34px;margin:0 auto 20px;filter:drop-shadow(0 4px 18px rgba(124,92,255,.4))}}
 .poweredby{{text-align:center;color:#6a6f88;font-size:12px;margin-top:24px}}.poweredby a{{color:#8a8fb0}}
 </style></head><body><div class="card">
-<img class="brandlogo" src="https://yaya.sh/brand/logo.svg" alt="Yaya">
+<img class="brandlogo" src="{BRAND_BASE_URL}/brand/logo.svg" alt="{BRAND_NAME}">
 {body}
 <div class="poweredby">{T(lang,'bridge.powered_by')} <a href="https://libresynergy.org">LibreSynergy</a></div>
 {lang_switcher(lang)}

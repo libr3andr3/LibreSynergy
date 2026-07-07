@@ -259,5 +259,5 @@ say "palette:   brand ${LS_COLOR_BRAND} · accent ${LS_COLOR_ACCENT} · ink ${LS
 say "templates: ${N_RENDERED} found, ${N_FRESH} (re)rendered"
 say "tokens:    $BRAND_DIR/tokens.css"
 echo
-echo "Done. Chat client name/logo are compiled in — rebuild apps/chat_cinny, then"
-echo "recreate caddy (deploy-node.sh does this) and the Jitsi web container if changed."
+echo "Done. Recreate caddy so the edge serves the new tree (deploy-node.sh does"
+echo "this), and the Jitsi web container if its branding changed."

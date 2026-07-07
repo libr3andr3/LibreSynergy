@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-verypowerful peer — v0 mesh client: register at the rendezvous, hole-punch
+LibreSynergy peer — v0 mesh client: register at the rendezvous, hole-punch
 to another peer, exchange a test payload directly (no relay in the path).
 
   peer.py --id alice --swarm test                       # wait for punches
@@ -15,7 +15,7 @@ import argparse, json, os, socket, sys, time
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--server", default="stun.yaya.sh")
+    ap.add_argument("--server", default="stun.example.com")
     ap.add_argument("--port", type=int, default=3478)
     ap.add_argument("--id", required=True)
     ap.add_argument("--swarm", default="test")

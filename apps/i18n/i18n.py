@@ -18,7 +18,7 @@ Usage inside a BaseHTTPRequestHandler:
     import i18n
     ...
     lang, set_cookie = i18n.resolve(self)
-    title = i18n.t(lang, "admin.page_title", brand="Yaya")
+    title = i18n.t(lang, "admin.page_title", brand="My Community")
 """
 import glob
 import http.cookies

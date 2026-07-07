@@ -6,7 +6,7 @@ community admin.
 
 ## What you need before starting
 
-- **A domain name** you control (e.g. `mibarrio.pe`), at a registrar where you
+- **A domain name** you control (e.g. `acme.studio`), at a registrar where you
   can edit DNS records.
 - **A VPS** — the cheapest tier at any provider is fine ($5/month, 1 vCPU,
   512 MB RAM). It needs a public IPv4 address and a fresh Debian 12+ or
@@ -25,7 +25,7 @@ in parallel, so the wall-clock total is usually ~30 minutes.
 
 ```bash
 ssh you@node
-git clone https://your-forge.example/libresynergy.git
+git clone https://libresynergy.org/stack.git libresynergy
 cd libresynergy
 ```
 
@@ -72,8 +72,8 @@ The values you must set:
 
 | Variable | What it is | Example |
 |---|---|---|
-| `LS_BASE_DOMAIN` | your community's domain | `mibarrio.pe` |
-| `LS_ADMIN_EMAIL` | operator email (Let's Encrypt notices, admin account) | `operador@mibarrio.pe` |
+| `LS_BASE_DOMAIN` | your community's domain | `acme.studio` |
+| `LS_ADMIN_EMAIL` | operator email (Let's Encrypt notices, admin account) | `admin@acme.studio` |
 | `LS_DATA_DIR` | where all persistent data lives | `/srv/libresynergy/data` |
 | `LS_WWW_DIR` | static site / landing pages | `/srv/libresynergy/www` |
 | `LS_SECRETS_DIR` | generated secrets (mode 600) | `/srv/libresynergy/secrets` |

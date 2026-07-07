@@ -34,10 +34,13 @@ route_web(){
     nginx -t && nginx -s reload" && ok "relay SNI map -> $WG_IP:443"
 
   # 2) Caddy vhost on the node (idempotent), then hard-restart (reload silently fails).
-  #    Container + Caddyfile path default to the reference instance; override via env.
-  local cc="${LS_CADDY_CONTAINER:-yaya-caddy-1}" cf="${LS_NODE_CADDYFILE:-/home/yaya/docker/Caddyfile}"
+  #    The container name derives from the compose project; the Caddyfile path is
+  #    read from the container's own mount. Override via LS_CADDY_CONTAINER /
+  #    LS_NODE_CADDYFILE if your deployment differs.
+  local cc="${LS_CADDY_CONTAINER:-${LS_PROJECT_NAME:-libresynergy}-caddy-1}" cf="${LS_NODE_CADDYFILE:-}"
   ssh "$NODE" "F=\$(docker inspect -f '{{ range .Mounts }}{{ if eq .Destination \"/etc/caddy/Caddyfile\" }}{{ .Source }}{{ end }}{{ end }}' $cc 2>/dev/null); \
     F=\${F:-$cf}; \
+    [ -n \"\$F\" ] || { echo 'could not locate the Caddyfile: is the stack up? (or set LS_NODE_CADDYFILE)'; exit 1; }; \
     grep -q '^$host {' \"\$F\" || printf '\n$host {\n    bind $WG_IP\n    import secure_headers\n    reverse_proxy 127.0.0.1:$port\n}\n' >> \"\$F\"; \
     docker restart $cc >/dev/null" && ok "node Caddy vhost added + Caddy restarted"
 
@@ -62,11 +65,6 @@ route_tcp(){
     nginx -t && nginx -s reload" && ok "relay stream forward $port -> $WG_IP:$port"
 
   dns "A  $name.$DOMAIN  ->  $PUBIP   (DNS-only)"
-  # SRV hint only applies to Minecraft; guard with `if` so a non-match doesn't
-  # become the function's (and script's) non-zero exit status.
-  if [ "$name" = "minecraft" ] || [ "$port" = "25565" ]; then
-    dns "SRV _minecraft._tcp.play.$DOMAIN  0 0 $port  $name.$DOMAIN"
-  fi
 }
 
 case "${1:-}" in

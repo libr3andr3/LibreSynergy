@@ -27,4 +27,4 @@ services:
       TRACKER_PORT: "9120"
       TZ: ${LS_TZ:-UTC}
     volumes:
-      - ./apps/tracker:/app
+      - ../apps/tracker:/app

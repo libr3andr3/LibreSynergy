@@ -26,16 +26,15 @@ services:
       - ${LS_DATA_DIR}/matrix/synapse:/data
 
   chat:
-    # Branded Cinny (Matrix web client). Built from source shipped in this repo;
-    # adjust the build context if you vendor the client elsewhere.
-    image: libresynergy-chat:latest
-    build:
-      context: ../apps/chat_cinny
+    # Cinny (Matrix web client) — official upstream image, locked to your
+    # homeserver via config.json (rendered from www/chat/config.template.json
+    # by `ls init` / `ls brand`). To bake your logo/name into the client
+    # itself, fork and build Cinny, then override `image:` here.
+    image: ghcr.io/cinnyapp/cinny:latest
     restart: unless-stopped
     ports:
       - "127.0.0.1:8114:80"
     environment:
       - TZ=${LS_TZ:-UTC}
     volumes:
-      # Operators template this config.json (set the homeserver URL to https://${LS_MATRIX}).
-      - ${LS_WWW_DIR}/chat/config.json:/usr/share/nginx/html/config.json:ro
+      - ${LS_WWW_DIR}/chat/config.json:/app/config.json:ro

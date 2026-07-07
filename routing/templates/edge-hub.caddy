@@ -105,13 +105,10 @@
 
     # ---- first-party endpoints (carried over from the original root block
     # in the Caddyfile — keep in sync if those helpers move) ----
-    handle /jobs/submit {
-        reverse_proxy 127.0.0.1:9091
-    }
     handle /join {
         reverse_proxy 127.0.0.1:9092
     }
-    handle /api/* {
+    handle /api/events* {
         reverse_proxy 127.0.0.1:9102
     }
 

@@ -4,6 +4,51 @@ All notable changes to LibreSynergy are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-07-07
+
+A scope-and-trust release: the distribution now contains exactly the pieces a
+creator or community needs to run their own livestream, courses, chat, and
+payments — every service's source in the repo, every default neutral.
+
+### Added
+
+- **membership-sync and events sources** (`apps/membership_sync/`,
+  `apps/events/`) now ship with the repo. Previously the payments unit said
+  "copy them from your running instance" — unacceptable for code that moves
+  people in and out of a paid tier. Both are short, pure-stdlib, and readable.
+- **`ls init` renders the branded pages** — templates under `www/` render at
+  init (previously only via `ls brand`), so a fresh install serves your brand,
+  not placeholder files.
+- Payments/membership/events services now receive their hostnames, brand
+  name, price, and group names from `libresynergy.env` via compose — no
+  per-app configuration to keep in sync.
+
+### Changed
+
+- **Creator-first README** — the front door now speaks to the person whose
+  livestream, course, and paid community this runs, without dropping the
+  community/municipality story.
+- Secrets examples (`secrets/*.example`) now use exactly the variable names
+  the services read (`AUTHENTIK_URL`, `ANNOUNCE_ROOM`, `EVENTS_ADMIN_TOKEN`,
+  Frappe API keys), so following the examples produces a working install.
+- All personal/flagship defaults removed from code and docs: hardcoded
+  domains, example IPs, container names, watermark text, and the internal
+  codename for the relay pattern. Rendered brand artifacts (`www/index.html`
+  and friends) are no longer tracked — only their `*.template.*` sources are.
+- `deploy-node.sh` requires an explicit `NODE_DIR` instead of assuming the
+  flagship's paths; `ls-route` derives the Caddy container from the compose
+  project name.
+
+### Removed
+
+- **Minecraft PoC** (`profile: games`), its docs, and its DNS automation —
+  out of scope for the distribution. The raw-TCP routing pattern it
+  demonstrated is documented with the livestream RTMP ingest instead.
+- **Operator MCP tool** (`tools/verypowerful-mcp.py`) — flagship-operations
+  tooling, not part of the community stack.
+- **Personal jobs-board service** from the edge unit and Caddyfile — its
+  source was never in the repo, so a fresh clone could not build it.
+
 ## [1.1.0] — 2026-07-05
 
 Everything the flagship instance (yaya.sh) proved in production, folded back

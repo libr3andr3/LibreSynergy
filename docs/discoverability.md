@@ -8,7 +8,7 @@ the root domain and the installable PWA shell on `app.<domain>`.
 
 | File | What it does |
 |------|--------------|
-| `www/robots.template.txt` | Crawl policy for the root domain. Renders to `www/robots.txt` at deploy (it needs `__LS_BASE_DOMAIN__` for the absolute sitemap URL, which the robots spec requires). Allows the public landing, disallows `/app/`, `/api/`, `/jobs/submit`, points to the sitemap. |
+| `www/robots.template.txt` | Crawl policy for the root domain. Renders to `www/robots.txt` at deploy (it needs `__LS_BASE_DOMAIN__` for the absolute sitemap URL, which the robots spec requires). Allows the public landing, disallows the app shell and API paths, points to the sitemap. |
 | `www/sitemap.template.xml` | Renders to `www/sitemap.xml`. Public URLs only: `/`, `/join`, the livestream page (`live.`), the course catalog (`learn.`). |
 | `routing/templates/edge-hub.caddy` | Importable Caddy config for the root-domain and `app.` vhosts: compression, security headers, PWA plumbing, cache policy, robots/sitemap serving. Replaces the two matching blocks in the root `Caddyfile` (wiring steps below and in the file header). |
 | `docs/discoverability.md` | This document. |
@@ -49,8 +49,8 @@ already granted in the root `Caddyfile`'s meet/live vhosts. Unrendered
 
 2. In the root `Caddyfile`, **delete or comment out** the existing
    `{$LS_BASE_DOMAIN} { ... }` and `{$LS_APP} { ... }` site blocks (Caddy
-   rejects duplicate site addresses; the snippet carries the `/jobs/submit`,
-   `/join`, and `/api/*` proxies over). Then add, at the top level:
+   rejects duplicate site addresses; the snippet carries the `/join` and
+   `/api/events` proxies over). Then add, at the top level:
 
    ```
    import /etc/caddy/edge-hub.caddy

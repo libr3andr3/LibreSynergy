@@ -23,7 +23,7 @@
 
 'use strict';
 
-const SW_VERSION = '1.1.0'; /* ← bump this string to invalidate all caches */
+const SW_VERSION = '1.2.0'; /* ← bump this string to invalidate all caches */
 
 const PRECACHE = `ls-precache-${SW_VERSION}`;
 const RUNTIME = `ls-runtime-${SW_VERSION}`;

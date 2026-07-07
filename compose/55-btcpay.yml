@@ -15,8 +15,16 @@
 #
 # Funds safety: use a WATCH-ONLY wallet — paste an xpub from a wallet whose
 # private keys never touch this server (Store → Wallet → "connect an existing
-# wallet"). Monero (XMR) is a BTCPay 2.x plugin, not a chain — install it in
-# the UI if wanted.
+# wallet").
+#
+# Monero (profile: "xmr", requires "btcpay"): private money for members who
+# don't want their support to be public chain data. Runs your own pruned
+# monerod (~95 GB disk, days of initial sync) + wallet-rpc; BTCPay picks
+# them up via the Monero plugin (Server Settings → Plugins → Monero, one
+# click, then restart this unit). Nothing is shared with any third party:
+# your node validates, your wallet-rpc watches, your disk holds the chain.
+#
+#   Start:  ./bin/ls up btcpay xmr
 
 services:
   btcpay-postgres:
@@ -98,6 +106,45 @@ services:
       BTCPAY_BTCEXPLORERCOOKIEFILE: /datadir-nbx/Main/.cookie
       BTCPAY_POSTGRES: "User ID=btcpay;Password=${BTCPAY_PG_PASSWORD};Host=btcpay-postgres;Port=5432;Database=btcpayserver;"
       BTCPAY_EXPLORERPOSTGRES: "User ID=btcpay;Password=${BTCPAY_PG_PASSWORD};Host=btcpay-postgres;Port=5432;Database=nbxplorer;"
+      # Monero wiring — inert until the xmr profile runs and the Monero
+      # plugin is installed (Server Settings → Plugins); then it just works.
+      BTCPAY_XMR_DAEMON_URI: http://monerod:18081
+      BTCPAY_XMR_WALLET_DAEMON_URI: http://monero-wallet-rpc:18082
+      BTCPAY_XMR_WALLET_DAEMON_WALLETDIR: /wallet
     volumes:
       - ${LS_DATA_DIR}/btcpay/btcpay:/datadir
       - ${LS_DATA_DIR}/btcpay/nbxplorer:/datadir-nbx:ro
+      - ${LS_DATA_DIR}/btcpay/monero/wallet:/wallet
+      - ${LS_DATA_DIR}/btcpay/plugins:/root/.btcpayserver/Plugins
+
+  # --- Monero (profile: xmr) — your own pruned node + view-only wallet-rpc ---
+  monerod:
+    image: btcpayserver/monero:0.18.4.3
+    profiles: ["xmr"]
+    restart: unless-stopped
+    entrypoint: monerod
+    # Restricted RPC only reachable inside the compose network; pruned chain
+    # (~95 GB); DNS blocklist on; conservative bandwidth caps.
+    command: >
+      --non-interactive --restricted-rpc --rpc-bind-ip=0.0.0.0 --rpc-bind-port=18081
+      --confirm-external-bind --prune-blockchain --enable-dns-blocklist
+      --no-igd --no-zmq --out-peers=16 --limit-rate-up=2048 --limit-rate-down=8192
+      --data-dir=/data
+    volumes:
+      - ${LS_DATA_DIR}/btcpay/monero/chain:/data
+
+  monero-wallet-rpc:
+    image: btcpayserver/monero:0.18.4.3
+    profiles: ["xmr"]
+    restart: unless-stopped
+    depends_on:
+      - monerod
+    entrypoint: monero-wallet-rpc
+    # Holds the store's VIEW-ONLY wallet (created by the BTCPay Monero
+    # plugin): it can see incoming payments, it cannot spend them.
+    command: >
+      --non-interactive --rpc-bind-ip=0.0.0.0 --rpc-bind-port=18082 --confirm-external-bind
+      --disable-rpc-login --daemon-address=monerod:18081 --trusted-daemon
+      --wallet-dir=/wallet
+    volumes:
+      - ${LS_DATA_DIR}/btcpay/monero/wallet:/wallet

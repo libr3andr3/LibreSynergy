@@ -4,6 +4,34 @@ All notable changes to LibreSynergy are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] — 2026-07-07
+
+Bringup, self-bootstrapped — and private money.
+
+### Added
+
+- **First registrant becomes the admin.** The identity layer now scaffolds
+  itself from `compose/blueprints/00-community-identity.yaml` on authentik's
+  first boot: signup flow, passwordless email-code login, `members`/`premium`
+  groups, brand defaults — and the first account registered on a fresh
+  instance lands in `authentik Admins`. Codes are sent through the
+  operator's own SMTP credentials (`secrets/email.env`). No bootstrap
+  passwords, no console steps.
+- **`scripts/scaffold-matrix.sh`** — one command builds the chat structure:
+  registers the community bot, creates the community space (#general,
+  #welcome) and the premium space (+lounge), and writes `spaces.json` +
+  `ANNOUNCE_ROOM` for the membership/events services.
+- **Monero** (profile `xmr`, on top of `btcpay`): your own pruned monerod
+  (~95 GB) + view-only wallet-rpc, picked up by BTCPay's Monero plugin —
+  private payments where amounts and senders are shielded by default and
+  no third party sees anything. `docs/monero.md`.
+
+### Fixed
+
+- Service-worker cache versioning: `SW_VERSION` bumped to 1.2.0 so installed
+  PWAs drop the pre-panels shell. Rule: any change under `www/app/` ships
+  with an `SW_VERSION` bump.
+
 ## [1.2.0] — 2026-07-07
 
 A scope-and-trust release: the distribution now contains exactly the pieces a

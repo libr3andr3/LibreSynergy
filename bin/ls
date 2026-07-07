@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # LibreSynergy CLI — one command to run your community OS.
 #   ./bin/ls init                 copy env + generate secrets + make dirs
-#   ./bin/ls up [profiles...]     start core (+ payments|stream|btcpay|vod|reels|admin|files)
+#   ./bin/ls up [profiles...]     start core (+ payments|stream|btcpay|xmr|vod|reels|admin|files)
 #   ./bin/ls down                 stop everything
 #   ./bin/ls restart [service]    recreate all or one service
 #   ./bin/ls status               show running services
@@ -59,7 +59,7 @@ case "$cmd" in
     say "starting stack${*:+ + profiles: $*}"
     dc "${pf[@]}" up -d
     ;;
-  down)      load_env; dc --profile payments --profile stream --profile btcpay --profile vod --profile reels --profile admin --profile files down ;;
+  down)      load_env; dc --profile payments --profile stream --profile btcpay --profile xmr --profile vod --profile reels --profile admin --profile files down ;;
   restart)   load_env; dc up -d --force-recreate ${1:+"$1"} ;;
   status|ps) load_env; dc ps ;;
   logs)      load_env; dc logs -f --tail=100 ${1:+"$1"} ;;

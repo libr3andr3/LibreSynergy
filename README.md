@@ -33,7 +33,7 @@ can read and hardware you own.
 | Classroom: courses, lessons, quizzes | [Frappe LMS](https://frappe.io/lms) | `https://learn.<your-domain>` |
 | Community chat rooms and DMs | [Matrix Synapse](https://matrix.org) + [Cinny](https://cinny.in) | `https://chat.<your-domain>` |
 | Webinars and video meetings | [Jitsi Meet](https://jitsi.org) | `https://meet.<your-domain>` |
-| Payments & premium — card **and** crypto *(profiles `payments`/`btcpay`)* | Stripe + [BTCPay](https://btcpayserver.org) (BTC + Monero) + USDC on Solana → automatic membership sync | `https://premium.<your-domain>` |
+| Payments & premium — card **and** crypto *(profiles `payments`/`btcpay`/`xmr`)* | Stripe + [BTCPay](https://btcpayserver.org) (Bitcoin + [Monero](docs/monero.md)) + USDC on Solana → automatic membership sync | `https://premium.<your-domain>` |
 | One account for everything (passwordless email-code sign-in) | [Authentik](https://goauthentik.io) | `https://auth.<your-domain>` |
 | The installable branded app that ties it together | first-party PWA shell | `https://app.<your-domain>` |
 | Peer-seeded course video — learners seed to each other *(profile `vod`)* | WebTorrent + own tracker | `https://tracker.<your-domain>` |
@@ -41,6 +41,12 @@ can read and hardware you own.
 | Admin dashboard: branding, announcements, events *(profile `admin`)* | first-party, behind SSO | `https://admin.<your-domain>` |
 | File sharing *(profile `files`)* | Filebrowser | optional |
 | The front door | Caddy on your node + WireGuard tunnel + nginx SNI relay on the VPS | `https://<your-domain>` |
+
+Payments meet people where they are: cards for most members (Stripe),
+Bitcoin for the self-custody crowd, **Monero for supporters who don't want
+their support to be public chain data** — shielded amounts and senders,
+validated by your own node, seen by no processor. All three settle into the
+same membership group; see [docs/monero.md](docs/monero.md).
 
 Membership is two-tier and automatic: everyone who joins is a **member**
 (free); paying supporters become **premium**. Both are just Authentik groups,
@@ -101,6 +107,7 @@ see [docs/architecture-mesh.md](docs/architecture-mesh.md) and
 - [Operations](docs/operations.md) — backups, updates, secrets rotation, known gotchas
 - [Branding](docs/branding-pipeline.md) — one env file drives every page, icon, and email
 - [Add a service](docs/add-a-service.md) — route any new web or TCP service through the stack
+- [Monero](docs/monero.md) — private payments on your own node (profile `xmr`)
 - [USDC on Solana](docs/solana-usdc.md) — non-custodial stablecoin checkout via Solana Pay
 - [Course VOD layer](docs/peertube-layer.md) — peer-seeded lessons + browser player embed
 - [The mesh](docs/architecture-mesh.md) — web-onboarding → P2P funnel, content signing

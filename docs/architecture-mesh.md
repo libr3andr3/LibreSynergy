@@ -81,11 +81,34 @@ hole-punch a direct UDP path — then it steps out of the way. It never sees a
 stream byte. Cone NATs punch directly; symmetric-NAT peers fall back to a TURN
 relay (a mesh member with a public IP can *be* that relay).
 
+### Direct WireGuard tunnels (wg-punch)
+
+The rendezvous also bootstraps full **peer-to-peer VPN links**: `mesh/wg-punch.py`
+binds a WireGuard listen port itself, coordinates a punch through both NATs,
+prints the peer's working endpoint, and exits leaving the NAT mapping hot —
+WireGuard then comes up on the same port pointing straight at the peer.
+`mesh/mesh-up.sh` wraps the whole dance (key gen, punch, config, `wg-quick up`);
+run it on both peers simultaneously. Proven between a university NAT and a
+residential NAT on another continent: **736 Mbit/s sustained, no relay in the
+data path** — 45× what a WebRTC data channel managed on the same route.
+
+### Bulk swarm transfer (swarm / swarm-shard)
+
+`mesh/swarm.mjs` is a headless hybrid torrent peer (WebRTC via the community
+tracker's WSS signaling + classic TCP) for seeding or fetching a torrent from
+the CLI — the same engine browser members use, so one seed serves both worlds.
+`mesh/swarm-shard.mjs` runs one of K parallel fetcher processes (files split by
+`index % K`): independent congestion windows saturate high-RTT lossy paths that
+a single SCTP data channel cannot. Both carry high-RTT fixes (request-pipeline
+floor, send-buffer slack) tuned on a real 90 ms intercontinental route.
+
 ## Components (built + proven)
 
 | Piece | Where | Status |
 |-------|-------|--------|
 | Rendezvous / hole-punch | `mesh/rendezvous.py` (VPS), `peer.py` | proven: 64KB direct transfer across two NATs, md5-verified |
+| Direct WireGuard p2p VPN | `mesh/wg-punch.py`, `mesh-up.sh` | proven: 736 Mbit/s across two NATs, zero relay bytes |
+| Swarm bulk transfer | `mesh/swarm.mjs`, `swarm-shard.mjs` | proven: 83 GB library moved via tracker-signaled WebRTC + shards |
 | Content signing | `mesh/content_sign.py` | proven: honest / tamper / impostor / forgery cases |
 | Web tier | OwnCast, Matrix, Frappe, Jitsi, Authentik | live on the flagship instance |
 | Payments | Stripe + BTCPay (BTC + Monero) → Authentik group | Stripe live; BTCPay syncing |

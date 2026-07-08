@@ -93,9 +93,15 @@ members run — the standard web as the onboarding funnel, P2P as its deep end:
   every viewer verifies it is really yours (no blockchain required).
 - **NAT-traversing rendezvous** — a STUN-style coordinator introduces peers
   for direct transfer; it never touches the data.
+- **Attested peering** — before two nodes federate, they verify *each other*:
+  are you friend or foe (Ed25519 key possession), can I trust you with my data
+  (a signed measured-boot / TPM quote), who do you work for (a delegated
+  operator + a human present on a YubiKey / passkey). The tunnel comes up only
+  if both sides pass. `python3 mesh/attest.py demo --all`.
 
 The tools are readable, dependency-light, and each was proven end-to-end:
-see [docs/architecture-mesh.md](docs/architecture-mesh.md) and
+see [docs/architecture-mesh.md](docs/architecture-mesh.md),
+[docs/attested-peering.md](docs/attested-peering.md) and
 [docs/peertube-layer.md](docs/peertube-layer.md).
 
 ## Documentation

@@ -65,13 +65,17 @@ stream's tamper-evident source of truth: a viewer pulling segment 42 from a
 random peer can prove it is genuinely the creator's segment 42, in order,
 unaltered — even though the origin server never touched that transfer.
 
-## The three trust roots (distinct, don't conflate)
+## The four trust roots (distinct, don't conflate)
 
 1. **Content authenticity** — the *creator's* Ed25519 key signs content/segments.
 2. **Binary integrity** — a **maintainer quorum** (threshold signatures) signs
    every mesh client release. Only quorum-signed code runs on the mesh.
 3. **Transport** — TLS still terminates on the community's own node for the web
    tier; the mesh tier is authenticated by content signatures, not TLS.
+4. **Peer identity** — before a tunnel comes up, each node proves *who it is,
+   what it booted, and who it works for* to the other (**attested peering**;
+   see [attested-peering.md](attested-peering.md)). Roots 1–3 make the bytes and
+   the code trustworthy; root 4 makes the *peer on the other end* trustworthy.
 
 ## Coordination: the rendezvous (STUN) server
 
@@ -110,6 +114,7 @@ floor, send-buffer slack) tuned on a real 90 ms intercontinental route.
 | Direct WireGuard p2p VPN | `mesh/wg-punch.py`, `mesh-up.sh` | proven: 736 Mbit/s across two NATs, zero relay bytes |
 | Swarm bulk transfer | `mesh/swarm.mjs`, `swarm-shard.mjs` | proven: 83 GB library moved via tracker-signaled WebRTC + shards |
 | Content signing | `mesh/content_sign.py` | proven: honest / tamper / impostor / forgery cases |
+| Attested peering | `mesh/attest.py`, `agentfacts.py`, `hwroot.py` | proven: friend-or-foe / boot-attest / principal / replay — 26 tests + live 2-node gate |
 | Web tier | OwnCast, Matrix, Frappe, Jitsi, Authentik | live on the flagship instance |
 | Payments | Stripe + BTCPay (BTC + Monero) → Authentik group | Stripe live; BTCPay syncing |
 
@@ -152,3 +157,6 @@ entitlement check — sovereignty and paid access from the same primitive.
   engine dormant until the swarm is ready).
 - Standardize the message formats into a versioned **protocol** so any client
   can run functions on any member's node.
+- **Attested peering shipped** — nodes verify each other before a tunnel
+  ([attested-peering.md](attested-peering.md)); next: identity **revocation**
+  and a shared registry of vetted `known_good` boot digests.

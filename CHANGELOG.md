@@ -4,6 +4,46 @@ All notable changes to LibreSynergy are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] — 2026-07-08
+
+Attested peering — friend or foe, before the tunnel.
+
+### Added
+
+- **Attested peering (the mesh's fourth trust root).** Before two nodes
+  federate, they run a mutual, replay-proof handshake that answers three
+  questions with cryptography instead of trust-me: **are you friend or foe?**
+  (Ed25519 key possession bound to the session transcript), **can I trust you
+  with my data?** (a fresh signed measured-boot / TPM quote of what the node
+  booted), and **who do you work for?** (a delegated operator plus a human
+  present on a hardware token — YubiKey / FIDO2 passkey / PIV). The connection
+  proceeds only if both sides pass. Trust is end-to-end, peer↔peer; the
+  rendezvous never vouches for anyone. See
+  [docs/attested-peering.md](docs/attested-peering.md).
+  - **`mesh/attest.py`** — the three-message handshake (`hail`/`vouch`/`seal`),
+    a pure-function verifier (`evaluate()`), a no-network `demo --all` (with
+    `--tamper` modes that make one question fail on cue), and UDP `serve`/
+    `connect`.
+  - **`mesh/agentfacts.py`** — an `AgentFacts` passport: a signed,
+    self-describing document (identity, principal, capabilities, endpoints)
+    with an operator delegation. Named to be native to NANDA's Internet of
+    Agents.
+  - **`mesh/hwroot.py`** — two hardware roots of trust: a human principal
+    (real FIDO2/WebAuthn + PIV/ECDSA verification, with a labelled software
+    stand-in when no key is plugged in) and a machine environment quote
+    (measured-boot/TPM, with a labelled simulation when no TPM is present).
+    Policy can refuse simulated attestations.
+  - **`content_sign.py`** grows generic Ed25519 helpers (`sign_bytes`,
+    `verify_bytes`, `id_of_key`) — the same identity that signs content now
+    signs handshakes. Existing behaviour unchanged.
+  - **`mesh/peer.py --attest`** — opt-in gate: after a direct path is punched,
+    verify the peer before serving or fetching a payload; refuse on failure.
+    Without the flag, `peer.py` is byte-for-byte unchanged.
+  - **`mesh/tests/test_attest.py`** — 26 stdlib tests covering every attack the
+    gate must catch (impostor, forged identity/delegation, replay, unvetted
+    boot, missing/replayed human, off-roster stranger, untrusted operator) plus
+    real WebAuthn- and PIV-shaped assertions.
+
 ## [1.3.0] — 2026-07-07
 
 Bringup, self-bootstrapped — and private money.

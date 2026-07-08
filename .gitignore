@@ -24,6 +24,14 @@ apps/*/node_modules/
 __pycache__/
 *.pyc
 
+# Mesh identity material — node keys / passports / rosters are generated at
+# runtime by attest.py / agentfacts.py / content_sign.py and are never
+# committed (the demos and tests write to tempdirs; these guard the repo dir).
+mesh/*.key
+mesh/*.pub
+mesh/*.facts.json
+mesh/*.roster
+
 # Rendered brand outputs — generated from the *.template.* sources by
 # apply-branding.sh (run via `ls init` / `ls brand`). Only templates are tracked.
 www/index.html

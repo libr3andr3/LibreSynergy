@@ -138,6 +138,67 @@ def verify(path, manifest, expected_creator=None):
             os.unlink(p)
     return True, f"authentic — creator {m['creator']}, {m['size']}B, {m['media_type']}"
 
+# ---------------- generic Ed25519 (shared identity primitive) --------------------
+# The attestation handshake (mesh/attest.py) needs to sign/verify arbitrary
+# byte strings (nonces, transcripts, AgentFacts) with the SAME Ed25519 identity
+# that signs content. A creator/operator/node/agent are all one cryptographic
+# self: the key that signs your content is the key that proves who you are when
+# another peer asks "friend or foe?". These helpers keep every openssl call in
+# one place; they add nothing new to the trust model, only new callers.
+
+def pub_der_of_key(key_path) -> bytes:
+    """Public key in DER form for a private Ed25519 key — the basis of the id."""
+    pub_pem = _openssl(["pkey", "-in", key_path, "-pubout"])
+    with tempfile.NamedTemporaryFile(suffix=".pub", delete=False) as tf:
+        tf.write(pub_pem); pub_tmp = tf.name
+    try:
+        return _pubkey_der(pub_tmp)
+    finally:
+        os.unlink(pub_tmp)
+
+def id_of_key(key_path) -> str:
+    """The 16-hex fingerprint identity of a private key (== creator/agent id)."""
+    return _fingerprint(pub_der_of_key(key_path))
+
+def id_of_pub_der(pub_der: bytes) -> str:
+    """The identity fingerprint of a public key already in DER form."""
+    return _fingerprint(pub_der)
+
+def sign_bytes(key_path, msg: bytes) -> bytes:
+    """Raw Ed25519 signature over `msg` by the private key at `key_path`."""
+    # Ed25519 one-shot needs the message as a real file (it must know the size
+    # up front) — a stdin pipe fails with "unable to determine file size".
+    with tempfile.NamedTemporaryFile(suffix=".msg", delete=False) as tf:
+        tf.write(msg); msg_tmp = tf.name
+    try:
+        return _openssl(["pkeyutl", "-sign", "-inkey", key_path, "-rawin", "-in", msg_tmp])
+    finally:
+        os.unlink(msg_tmp)
+
+def verify_bytes(pub_der: bytes, msg: bytes, sig: bytes) -> bool:
+    """True iff `sig` is a valid Ed25519 signature over `msg` by `pub_der`."""
+    with tempfile.NamedTemporaryFile(suffix=".der", delete=False) as tf:
+        tf.write(pub_der); der_tmp = tf.name
+    try:
+        pub_pem = _openssl(["pkey", "-pubin", "-inform", "DER", "-in", der_tmp, "-pubout"])
+    finally:
+        os.unlink(der_tmp)
+    tmps = []
+    def _tmp(suffix, blob):
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as t:
+            t.write(blob); tmps.append(t.name); return t.name
+    pem_tmp = _tmp(".pub", pub_pem)
+    sig_tmp = _tmp(".sig", sig)
+    msg_tmp = _tmp(".msg", msg)
+    try:
+        r = subprocess.run(["openssl", "pkeyutl", "-verify", "-pubin", "-inkey", pem_tmp,
+                            "-rawin", "-sigfile", sig_tmp, "-in", msg_tmp],
+                           capture_output=True)
+        return r.returncode == 0
+    finally:
+        for p in tmps:
+            os.unlink(p)
+
 # ---------------- cli -----------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser()

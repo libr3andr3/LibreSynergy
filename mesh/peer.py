@@ -22,7 +22,39 @@ def main():
     ap.add_argument("--connect", help="peer id to punch to")
     ap.add_argument("--payload", help="file to serve to punched peers")
     ap.add_argument("--timeout", type=int, default=45)
+    # attested peering (opt-in): verify WHO the peer is before serving/fetching.
+    ap.add_argument("--attest", action="store_true",
+                    help="run the mutual attestation handshake before any payload")
+    ap.add_argument("--key", help="this node's Ed25519 identity key (mesh/attest.py keygen)")
+    ap.add_argument("--facts", help="this node's AgentFacts json (mesh/agentfacts.py build)")
+    ap.add_argument("--roster", help="file of trusted peer agent_ids (one per line); "
+                                     "absent = trust-on-first-use")
+    ap.add_argument("--human-key", help="present a hardware-principal (soft) key: who I work for")
+    ap.add_argument("--ak-key", help="present a boot-attestation key: what I booted")
+    ap.add_argument("--require-human", action="store_true", help="demand a live principal from the peer")
+    ap.add_argument("--require-env", action="store_true", help="demand a boot quote from the peer")
     a = ap.parse_args()
+
+    # Optional attestation gate. Trust is established END-TO-END here, peer↔peer;
+    # the rendezvous never vouches for anyone. Everything below is inert unless
+    # --attest is passed, so the un-attested path is byte-for-byte unchanged.
+    identity = policy = attn = None
+    attested = {}      # connect side: peer id  -> Verdict
+    allow_serve = {}   # serve side:   peer addr -> bool (attested friend?)
+    my_label = a.id
+    if a.attest:
+        if not (a.key and a.facts):
+            print("--attest requires --key and --facts", file=sys.stderr); return 2
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import attest as attn, hwroot
+        facts = json.load(open(a.facts)); my_label = facts.get("label", a.id)
+        human = {"key": a.human_key, "alg": "ed25519"} if a.human_key else None
+        identity = attn.load_identity(a.key, facts, human_token=human, ak_key=a.ak_key)
+        roster = attn.load_roster(a.roster) if a.roster else None
+        policy = {"roster": roster, "tofu": roster is None,
+                  "require_human": a.require_human, "require_hardware_env": a.require_env,
+                  "env_policy": {"known_good": {hwroot.boot_digest(identity["measurements"])},
+                                 "require_hardware": False}}
 
     srv = (socket.gethostbyname(a.server), a.port)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -38,7 +70,7 @@ def main():
     payload = open(a.payload, "rb").read() if a.payload else b"HELLO-FROM-" + a.id.encode()
     chunks = [payload[i:i+600] for i in range(0, len(payload), 600)] or [b""]
     rx = {}
-    last_ping = last_connect = last_spray = 0
+    last_ping = last_connect = last_spray = last_get = 0
     t0 = time.time()
 
     while time.time() - t0 < a.timeout:
@@ -55,6 +87,12 @@ def main():
                 if pid not in punched:
                     send(addr, {"op": "syn", "peer": a.id})
             last_spray = now
+        # attested fetch: once the peer is verified FRIEND, ask for the payload
+        # (retried, so it survives a datagram lost during the handshake window)
+        if (a.attest and a.connect in punched and a.connect not in got
+                and attested.get(a.connect) and attested[a.connect]["friend"]
+                and now - last_get > 0.5):
+            send(punched[a.connect], {"op": "get", "peer": a.id}); last_get = now
         try:
             data, addr = sock.recvfrom(65535)
         except socket.timeout:
@@ -83,8 +121,33 @@ def main():
                 punched[msg["peer"]] = addr
                 print(f"[{a.id}] ✅ DIRECT PATH to {msg['peer']} via {addr[0]}:{addr[1]}", flush=True)
             if a.connect == msg["peer"] and msg["peer"] not in got:
-                send(addr, {"op": "get", "peer": a.id})
+                if a.attest:
+                    if msg["peer"] not in attested:      # verify the peer, once
+                        v = attn.gate_initiator(sock, addr, identity, policy)
+                        sock.settimeout(1.0)
+                        attested[msg["peer"]] = v
+                        print(attn.render_verdict(v, me=my_label, peer=msg["peer"]) if v
+                              else f"[{a.id}] ❌ attestation timed out with {msg['peer']}", flush=True)
+                        if not (v and v["friend"]):
+                            print(f"[{a.id}] ❌ REFUSING to fetch from unverified peer "
+                                  f"{msg['peer']}", flush=True)
+                            return 1
+                    # a verified FRIEND: the periodic sender issues the 'get'
+                else:
+                    send(addr, {"op": "get", "peer": a.id})
+        elif op == "hail" and a.attest:
+            # serve side: a peer wants to talk — verify it before we serve a byte
+            v = attn.gate_responder(sock, addr, identity, policy, msg)
+            sock.settimeout(1.0)
+            allow_serve[addr] = bool(v and v["friend"])
+            peer_label = (msg.get("facts") or {}).get("label", "peer")
+            print(attn.render_verdict(v, me=my_label, peer=peer_label) if v
+                  else f"[{a.id}] ❌ attestation timed out with a hailing peer", flush=True)
         elif op == "get":
+            if a.attest and not allow_serve.get(addr):
+                print(f"[{a.id}] ❌ REFUSING to serve unverified peer at "
+                      f"{addr[0]}:{addr[1]}", flush=True)
+                continue
             print(f"[{a.id}] serving {len(payload)} bytes to {msg['peer']} directly", flush=True)
             for i, c in enumerate(chunks):
                 sock.sendto(json.dumps({"op": "seg", "i": i, "n": len(chunks),

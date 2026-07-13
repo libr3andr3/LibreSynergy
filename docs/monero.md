@@ -12,7 +12,7 @@ member's wallet ──(Monero network)──► your monerod (pruned node, ~95 G
                                             │ RPC, compose-network only
                                      monero-wallet-rpc (VIEW-ONLY wallet)
                                             │
-                                     BTCPay Server ──settled──► premium group
+                                     BTCPay Server ──settled──► invoice paid
 ```
 
 ## What you need

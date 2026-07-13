@@ -82,7 +82,7 @@ The values you must set:
 
 Values that have sensible defaults you can leave alone: the subdomain names
 (`LS_AUTH=auth.$LS_BASE_DOMAIN`, `LS_MATRIX`, `LS_CHAT`, `LS_LEARN`,
-`LS_MEET`, `LS_APP`, `LS_PREMIUM`, `LS_PAY`) and the WireGuard addresses
+`LS_MEET`, `LS_APP`, `LS_PAY`) and the WireGuard addresses
 (`LS_WG_IP=10.0.0.2`, `LS_RELAY_WG_IP=10.0.0.1`). The relay endpoint was
 filled in by `bootstrap-vps.sh`.
 
@@ -122,7 +122,6 @@ At your registrar, create A records **all pointing at the VPS public IP**:
 | `learn` | A | VPS IP |
 | `meet` | A | VPS IP |
 | `app` | A | VPS IP |
-| `premium` | A | VPS IP |
 | `btcpay` *(only with the `payments` profile)* | A | VPS IP |
 
 A single wildcard `*` A record plus the bare-domain record also works. Never
@@ -156,12 +155,12 @@ Pick a username, enter your email, and type the code that arrives.
 **The first account registered on a fresh instance automatically becomes the
 admin** — it lands in the `authentik Admins` group with full control of the
 stack. There are no bootstrap passwords to copy and no console steps; the
-identity scaffold (signup flow, passwordless email-code login, `members` and
-`premium` groups, brand defaults) is applied automatically from
+identity scaffold (signup flow, passwordless email-code login, the `members`
+group, brand defaults) is applied automatically from
 `compose/blueprints/00-community-identity.yaml` when authentik boots.
 
-Then scaffold the community's chat structure (spaces, #general, the premium
-lounge) and point the announcement bot at it — one command, run from the repo:
+Then scaffold the community's chat structure (the community space, #general,
+#welcome) and point the announcement bot at it — one command, run from the repo:
 
 ```bash
 scripts/scaffold-matrix.sh && ls restart
@@ -177,9 +176,9 @@ account:
    at `https://meet.<your-domain>`.
 
 From here the community admin invites members from Authentik, and every new
-member automatically lands in the `members` group with access to chat,
-classroom, and meetings. If you enabled the `payments` profile, paying
-supporters are moved to `premium` automatically — see
+member automatically lands in the `members` group with access to everything —
+chat, classroom, meetings, streams, and courses. Membership is free; the
+`payments` profile only adds operator payment rails — see
 [architecture.md](architecture.md) for how that works.
 
 ## If something is wrong

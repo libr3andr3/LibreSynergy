@@ -4,7 +4,7 @@ Everything an operator sees — name, tagline, colors, icons, URLs — flows fro
 **one file** (`libresynergy.env`) through **one script**
 (`scripts/apply-branding.sh`). Nothing customer-facing is hand-edited on the
 node. That is the reproducibility guarantee: a new operator sets five variables
-and gets the exact same premium product under their own brand.
+and gets the exact same polished product under their own brand.
 
 ```
 libresynergy.env
@@ -47,7 +47,6 @@ double-underscore placeholders and are named `*.template.<ext>`:
 | `__LS_LEARN__`         | `LS_LEARN` (default `learn.<base>`)        | `learn.acme.studio`             |
 | `__LS_MEET__`          | `LS_MEET` (default `meet.<base>`)          | `meet.acme.studio`              |
 | `__LS_LIVE__`          | `LS_LIVE` (default `live.<base>`)          | `live.acme.studio`              |
-| `__LS_PREMIUM__`       | `LS_PREMIUM` (default `premium.<base>`)    | `premium.acme.studio`           |
 | `__LS_AUTH__`          | `LS_AUTH` (default `auth.<base>`)          | `auth.acme.studio`              |
 | `__LS_COLOR_BRAND__`   | `LS_COLOR_BRAND`                           | `#7c6cff`                   |
 | `__LS_COLOR_ACCENT__`  | `LS_COLOR_ACCENT`                          | `#ffc15e`                   |

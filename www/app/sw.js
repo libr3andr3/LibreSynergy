@@ -23,7 +23,7 @@
 
 'use strict';
 
-const SW_VERSION = '1.2.0'; /* ← bump this string to invalidate all caches */
+const SW_VERSION = '1.3.0'; /* ← bump this string to invalidate all caches */
 
 const PRECACHE = `ls-precache-${SW_VERSION}`;
 const RUNTIME = `ls-runtime-${SW_VERSION}`;
@@ -58,7 +58,7 @@ const SHELL_ASSETS = [
    real destination here. Sub-app hosts derive from this origin: the shell is
    served at app.<base-domain>, so chat lives at chat.<base-domain>, etc.
    If the SW is somehow not controlling, the URL gracefully opens the shell. */
-const GO_TARGETS = ['chat', 'learn', 'live', 'meet', 'premium'];
+const GO_TARGETS = ['chat', 'learn', 'live', 'meet'];
 
 function goUrl(dest) {
   const host = self.location.hostname;

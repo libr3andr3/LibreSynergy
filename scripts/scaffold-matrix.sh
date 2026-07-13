@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # scaffold-matrix.sh — build the community's Matrix structure on a fresh
 # homeserver: register the community bot (appservice token), create the
-# community space (+ #general, #welcome), the premium space (+ lounge), and
-# write the room map the stack consumes:
+# community space (+ #general, #welcome), and write the room map the stack
+# consumes:
 #   ${LS_SECRETS_DIR}/spaces.json   (membership-sync: who belongs where)
 #   ANNOUNCE_ROOM in events.env     (events service: where announcements go)
 #
@@ -57,11 +57,8 @@ def mkroom(name, public=True, space=False, parent=None):
 cspace  = mkroom("Community", public=True, space=True)
 general = mkroom("General", public=True, parent=cspace)
 welcome = mkroom("Welcome", public=True, parent=cspace)
-pspace  = mkroom("Premium", public=False, space=True)
-lounge  = mkroom("Premium Lounge", public=False, parent=pspace)
 
-out = {"community_space": cspace, "free_rooms": [general, welcome],
-       "premium_space": pspace, "premium_rooms": [lounge]}
+out = {"community_space": cspace, "free_rooms": [general, welcome]}
 path = f"{SECRETS}/spaces.json"
 with open(path, "w") as f:
     json.dump(out, f, indent=2); f.write("\n")

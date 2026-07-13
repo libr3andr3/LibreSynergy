@@ -19,7 +19,7 @@
     en: {
       "a11y.skip": "Skip to content",
       "nav.home": "Home", "nav.chat": "Chat", "nav.learn": "Learn",
-      "nav.meet": "Meet", "nav.live": "Live", "nav.premium": "Premium",
+      "nav.meet": "Meet", "nav.live": "Live",
       "topbar.search": "Search", "topbar.notifications": "Notifications", "topbar.account": "Account",
       "common.new_tab": "Open in a new tab", "common.close": "Close",
       "common.got_it": "Got it", "common.powered_by": "Powered by",
@@ -37,7 +37,6 @@
       "qa.learn_t": "Keep learning", "qa.learn_b": "Courses and lessons from your community.",
       "qa.meet_t": "Meet face to face", "qa.meet_b": "Instant video rooms — no account juggling.",
       "qa.live_t": "Watch the stream", "qa.live_b": "Live shows, events and drop-ins.",
-      "qa.premium_t": "Go Premium", "qa.premium_b": "Unlock member rooms, courses and events.",
       "panel.opens": "Opens in a new tab — your sign-in carries over.",
       "panel.chat_title": "Your community chat",
       "panel.chat_body": "Every room, DM and thread lives on your own Matrix server — end-to-end encrypted. Nobody reads it but you.",
@@ -47,11 +46,6 @@
       "panel.learn_body": "Structured courses from your community — video lessons, quizzes, and progress that follows you across devices.",
       "panel.learn_f1": "Courses & cohorts", "panel.learn_f2": "Progress tracking",
       "panel.learn_f3": "Certificates", "panel.learn_cta": "Open Learn",
-      "panel.premium_title": "Premium membership",
-      "panel.premium_body": "Back the community you love — and unlock everything it makes.",
-      "panel.premium_f1": "Members-only rooms", "panel.premium_f2": "All premium courses",
-      "panel.premium_f3": "Live member events", "panel.premium_f4": "Cancel anytime",
-      "panel.premium_cta": "Upgrade now",
       "install.button": "Install", "install.done": "Installed — see you on your home screen!",
       "ios.title": "Add to your Home Screen",
       "ios.s1": "Tap the Share button", "ios.s2": "Choose “Add to Home Screen”",
@@ -78,7 +72,7 @@
     es: {
       "a11y.skip": "Saltar al contenido",
       "nav.home": "Inicio", "nav.chat": "Chat", "nav.learn": "Aprender",
-      "nav.meet": "Reunión", "nav.live": "En vivo", "nav.premium": "Premium",
+      "nav.meet": "Reunión", "nav.live": "En vivo",
       "topbar.search": "Buscar", "topbar.notifications": "Notificaciones", "topbar.account": "Cuenta",
       "common.new_tab": "Abrir en una pestaña nueva", "common.close": "Cerrar",
       "common.got_it": "Entendido", "common.powered_by": "Con tecnología de",
@@ -96,7 +90,6 @@
       "qa.learn_t": "Sigue aprendiendo", "qa.learn_b": "Cursos y lecciones de tu comunidad.",
       "qa.meet_t": "Cara a cara", "qa.meet_b": "Salas de video al instante, sin líos de cuentas.",
       "qa.live_t": "Mira el directo", "qa.live_b": "Shows en vivo, eventos y visitas.",
-      "qa.premium_t": "Hazte Premium", "qa.premium_b": "Desbloquea salas, cursos y eventos de miembros.",
       "panel.opens": "Se abre en una pestaña nueva — tu sesión te acompaña.",
       "panel.chat_title": "El chat de tu comunidad",
       "panel.chat_body": "Cada sala, mensaje e hilo vive en tu propio servidor Matrix — cifrado de extremo a extremo. Nadie más lo lee.",
@@ -106,11 +99,6 @@
       "panel.learn_body": "Cursos estructurados de tu comunidad — lecciones en video, cuestionarios y progreso que te sigue en todos tus dispositivos.",
       "panel.learn_f1": "Cursos y cohortes", "panel.learn_f2": "Seguimiento de progreso",
       "panel.learn_f3": "Certificados", "panel.learn_cta": "Abrir el aula",
-      "panel.premium_title": "Membresía Premium",
-      "panel.premium_body": "Apoya a la comunidad que amas — y desbloquea todo lo que crea.",
-      "panel.premium_f1": "Salas solo para miembros", "panel.premium_f2": "Todos los cursos premium",
-      "panel.premium_f3": "Eventos en vivo para miembros", "panel.premium_f4": "Cancela cuando quieras",
-      "panel.premium_cta": "Mejorar ahora",
       "install.button": "Instalar", "install.done": "¡Instalada! Nos vemos en tu pantalla de inicio.",
       "ios.title": "Añádela a tu pantalla de inicio",
       "ios.s1": "Toca el botón Compartir", "ios.s2": "Elige “Añadir a pantalla de inicio”",
@@ -137,7 +125,7 @@
     fr: {
       "a11y.skip": "Aller au contenu",
       "nav.home": "Accueil", "nav.chat": "Chat", "nav.learn": "Apprendre",
-      "nav.meet": "Réunion", "nav.live": "Direct", "nav.premium": "Premium",
+      "nav.meet": "Réunion", "nav.live": "Direct",
       "topbar.search": "Rechercher", "topbar.notifications": "Notifications", "topbar.account": "Compte",
       "common.new_tab": "Ouvrir dans un nouvel onglet", "common.close": "Fermer",
       "common.got_it": "Compris", "common.powered_by": "Propulsé par",
@@ -155,7 +143,6 @@
       "qa.learn_t": "Continuez d’apprendre", "qa.learn_b": "Cours et leçons de votre communauté.",
       "qa.meet_t": "En face à face", "qa.meet_b": "Salles vidéo instantanées, sans jongler de comptes.",
       "qa.live_t": "Regardez le direct", "qa.live_b": "Émissions, événements et passages en direct.",
-      "qa.premium_t": "Passez Premium", "qa.premium_b": "Débloquez salons, cours et événements membres.",
       "panel.opens": "S’ouvre dans un nouvel onglet — votre session vous suit.",
       "panel.chat_title": "Le chat de votre communauté",
       "panel.chat_body": "Chaque salon, message et fil vit sur votre propre serveur Matrix — chiffré de bout en bout. Personne d’autre ne le lit.",
@@ -165,11 +152,6 @@
       "panel.learn_body": "Des cours structurés de votre communauté — leçons vidéo, quiz et progression qui vous suit sur tous vos appareils.",
       "panel.learn_f1": "Cours et cohortes", "panel.learn_f2": "Suivi de progression",
       "panel.learn_f3": "Certificats", "panel.learn_cta": "Ouvrir les cours",
-      "panel.premium_title": "Adhésion Premium",
-      "panel.premium_body": "Soutenez la communauté que vous aimez — et débloquez tout ce qu’elle crée.",
-      "panel.premium_f1": "Salons réservés aux membres", "panel.premium_f2": "Tous les cours premium",
-      "panel.premium_f3": "Événements membres en direct", "panel.premium_f4": "Annulez à tout moment",
-      "panel.premium_cta": "Passer Premium",
       "install.button": "Installer", "install.done": "Installée — rendez-vous sur votre écran d’accueil !",
       "ios.title": "Ajoutez-la à votre écran d’accueil",
       "ios.s1": "Touchez le bouton Partager", "ios.s2": "Choisissez « Sur l’écran d’accueil »",
@@ -224,10 +206,10 @@
   }
 
   /* =========================================================================
-     Router — hash-based (#/home … #/premium); keeps views mounted so embedded
+     Router — hash-based (#/home … #/live); keeps views mounted so embedded
      calls / streams survive navigation.
      ========================================================================= */
-  const VIEWS = ["home", "chat", "learn", "meet", "live", "premium"];
+  const VIEWS = ["home", "chat", "learn", "meet", "live"];
   let currentView = "";
 
   function mountEmbed(section) {
@@ -333,7 +315,7 @@
   /* ---- endpoints handed to panels ------------------------------------------- */
   const endpoints = {
     app: LS.urls.app, chat: LS.urls.chat, learn: LS.urls.learn,
-    meet: LS.urls.meet, live: LS.urls.live, premium: LS.urls.premium,
+    meet: LS.urls.meet, live: LS.urls.live,
     auth: LS.urls.auth, matrix: matrixBase(), ssoProvider: MX_SSO_PROVIDER,
   };
 

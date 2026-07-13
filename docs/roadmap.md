@@ -55,8 +55,6 @@ Strangers uploading video = legal exposure from day one.
 ## Phase 6 — Creator money (the migration engine)
 - Tips per reel: Stripe + BTCPay (both already in the stack), platform take
   small and published.
-- Premium reels: encrypted torrents with key release after entitlement —
-  the design is already proven in the course layer (peertube-layer.md).
 - Creator dashboard: earnings + aggregate privacy-preserving analytics.
 - Audience ownership as a *button*: export followers/emails, RSS per channel,
   Matrix space per creator.

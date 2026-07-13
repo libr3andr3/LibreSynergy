@@ -61,7 +61,7 @@ install — scripts, docs, and support all assume them. Do not renumber.
 | Jitsi web (webinars) | 127.0.0.1 | 8200 | `${LS_MEET}` |
 | OwnCast web/HLS *(profile: stream)* | 127.0.0.1 | 8600 | `${LS_LIVE}` |
 | OwnCast RTMP ingest *(profile: stream)* | `${LS_WG_IP}` | 1935 | VPS:1935 (raw TCP) |
-| Payments bridge — checkout, account, join form *(profile: payments)* | 127.0.0.1 | 9092 | `${LS_PREMIUM}`, `${LS_BASE_DOMAIN}/join` |
+| Payments bridge — account, join form *(profile: payments)* | 127.0.0.1 | 9092 | `${LS_BASE_DOMAIN}/join` |
 | BTCPay Server *(profile: btcpay)* | 127.0.0.1 | 8500 | `${LS_PAY}` |
 | membership-sync *(profile: payments)* | 127.0.0.1 | 9101 | internal only |
 | events — schedule + announcements *(profile: payments)* | 127.0.0.1 | 9102 | `${LS_BASE_DOMAIN}/api/events` |
@@ -80,33 +80,20 @@ passwords to forget or reuse. Every application delegates authentication to
 Authentik via OIDC (or forward-auth for apps without native OIDC), so
 disabling a person in one place disables them everywhere.
 
-**Two groups.** Membership tiers are just Authentik groups:
+**One group.** Membership is a single Authentik group:
 
-- `members` — everyone who accepts an invite. Free. Grants chat, classroom,
-  and meetings.
-- `premium` — paying supporters. Grants whatever the community defines:
-  premium courses, members-only streams and rooms, the premium portal.
+- `members` — everyone who joins. Free. Grants everything the community
+  runs: chat, classroom, meetings, streams, and courses.
 
 Applications read group membership from the OIDC token claims at login, so
-an entitlement change takes effect the next time the app refreshes the
+a membership change takes effect the next time the app refreshes the
 session.
 
-**Payments close the loop** (profile `payments`):
-
-```
-supporter pays invoice
-        |
-  BTCPay Server (8500) --settled webhook--> payments bridge
-                                                 |
-                                       membership-sync (9101)
-                                                 |
-                              Authentik API: add user to `premium`
-                                       (and remove on expiry)
-```
-
-The bridge and sync services are small and auditable by design: an invoice
-settles, a group changes, nothing else. Downgrades work the same way in
-reverse when a subscription lapses.
+**Payments are operator infrastructure** (profile `payments`): supporters
+can pay the operator by card (Stripe) or crypto (BTCPay — Bitcoin and
+Monero). Paying never changes what a member can access — everything inside
+the community is free for its members. The bridge and sync services are
+small and auditable by design.
 
 ## Data flows and storage
 

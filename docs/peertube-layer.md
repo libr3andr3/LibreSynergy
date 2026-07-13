@@ -90,9 +90,3 @@ playback even when the learner is the only one there.
 Optionally verify the creator signature client-side before playing (fetch the
 signed manifest, check the infohash signature) so a learner's browser refuses
 content not signed by the course's creator.
-
-## Premium course content
-Same as the mesh rule: public lessons are signed only; **paid** lessons are
-signed **and** AES-256-GCM encrypted, with the key released to the learner's
-client only after the Stripe/BTCPay entitlement check. The swarm still
-distributes the (encrypted) bytes; only entitled learners can decrypt.

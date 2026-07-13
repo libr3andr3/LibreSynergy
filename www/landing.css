@@ -173,9 +173,8 @@ body.ls .ln-scrollcue:hover{color:var(--ls-text)}
   .ln-cards{grid-template-columns:repeat(6,1fr)}
   .ln-card--chat{grid-column:span 3}
   .ln-card--learn{grid-column:span 3}
-  .ln-card--meet{grid-column:span 2}
-  .ln-card--live{grid-column:span 2}
-  .ln-card--premium{grid-column:span 2}
+  .ln-card--meet{grid-column:span 3}
+  .ln-card--live{grid-column:span 3}
 }
 .ln-card{position:relative;display:flex;flex-direction:column;gap:8px;min-height:190px;
   padding:26px;border-radius:var(--ls-r-xl);text-decoration:none;overflow:hidden;
@@ -199,13 +198,6 @@ body.ls .ln-card:hover{text-decoration:none;transform:translateY(-4px);
   font-size:var(--ls-fs-1);font-weight:700;color:var(--ls-gold);
   opacity:.75;transform:translateX(-2px);transition:opacity .28s var(--ls-ease),transform .28s var(--ls-ease)}
 .ln-card:hover .ln-card-go{opacity:1;transform:translateX(2px)}
-.ln-card--premium{background:
-    radial-gradient(140% 120% at 12% 0%,color-mix(in srgb,var(--ls-gold) 13%,transparent),transparent 60%),
-    color-mix(in srgb,var(--ls-surface) 88%,transparent)}
-.ln-card--premium .ln-card-icon{color:var(--ls-gold);
-  border-color:color-mix(in srgb,var(--ls-gold) 34%,var(--ls-line));
-  background:color-mix(in srgb,var(--ls-gold) 12%,transparent)}
-.ln-card--premium:hover{border-color:color-mix(in srgb,var(--ls-gold) 55%,var(--ls-line))}
 .ln-card-flag{position:absolute;top:18px;right:18px;font-size:10px;font-weight:900;letter-spacing:.14em;
   color:#fff;background:var(--ls-danger);border-radius:var(--ls-r-full);padding:4px 10px;
   animation:ls-pulse 1.6s var(--ls-ease) infinite}

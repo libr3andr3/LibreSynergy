@@ -182,7 +182,6 @@ body.shell-body{
   box-shadow:0 0 12px var(--sh-glow-brand);
 }
 .rail-link[aria-current="page"] .ico{ color:var(--ls-brand); }
-.rail-link--premium .ico{ color:var(--ls-gold); }
 .rail-live-dot{
   width:8px; height:8px; border-radius:50%; margin-left:auto;
   background:var(--ls-danger); box-shadow:0 0 0 3px color-mix(in srgb, var(--ls-danger) 20%, transparent);
@@ -277,11 +276,6 @@ body.shell-body{
 .qa-card:focus-visible{ outline:none; box-shadow:var(--ls-ring); }
 .qa-card h3{ margin:var(--ls-2) 0 0; font-size:var(--ls-fs-3); }
 .qa-card p{ margin:0; font-size:var(--ls-fs-1); }
-.qa-card--premium{ border-color:color-mix(in srgb, var(--ls-gold) 38%, transparent); }
-.qa-card--premium:hover{
-  border-color:color-mix(in srgb, var(--ls-gold) 60%, transparent);
-  box-shadow:0 14px 40px color-mix(in srgb, var(--ls-gold) 14%, transparent);
-}
 .qa-chip{
   display:inline-flex; align-items:center; justify-content:center;
   width:44px; height:44px; border-radius:14px; color:#fff;
@@ -290,7 +284,6 @@ body.shell-body{
 }
 .qa-chip--live{ background:linear-gradient(135deg, var(--ls-danger), color-mix(in srgb, var(--ls-danger) 45%, var(--ls-ink))); box-shadow:0 6px 18px color-mix(in srgb, var(--ls-danger) 28%, transparent); }
 .qa-chip--learn{ background:linear-gradient(135deg, var(--ls-ok), color-mix(in srgb, var(--ls-ok) 40%, var(--ls-ink))); box-shadow:0 6px 18px color-mix(in srgb, var(--ls-ok) 26%, transparent); }
-.qa-chip--premium{ background:var(--ls-gradient); color:#0b0b12; box-shadow:0 6px 18px color-mix(in srgb, var(--ls-gold) 30%, transparent); }
 
 /* ---- activity feed ------------------------------------------------------------------ */
 .activity{ padding:var(--ls-3) var(--ls-5); }
@@ -328,7 +321,7 @@ body.shell-body{
 .shell-powered{ margin-top:var(--ls-7); }
 .shell-powered a{ color:var(--ls-muted); }
 
-/* ---- panels (chat / learn / premium) -------------------------------------------------- */
+/* ---- panels (chat / learn) ------------------------------------------------------------ */
 .panel{
   display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
   gap:var(--ls-6); align-items:center;
@@ -344,12 +337,6 @@ body.shell-body{
 .panel-feats .ico-sm{ color:var(--ls-ok); flex:none; }
 .panel-cta{ display:flex; align-items:center; gap:var(--ls-4); flex-wrap:wrap; }
 .panel-note{ margin:0; font-size:var(--ls-fs-0); max-width:26ch; }
-.panel--premium{
-  border-color:color-mix(in srgb, var(--ls-gold) 35%, transparent);
-  background:
-    radial-gradient(100% 130% at 100% 0%, color-mix(in srgb, var(--ls-gold) 9%, transparent), transparent 55%),
-    var(--sh-glass-bg);
-}
 
 /* decorative mocks */
 .panel-art{ display:flex; align-items:center; justify-content:center; min-width:0; }
@@ -366,27 +353,6 @@ body.shell-body{
 .mock-bar{ display:block; height:100%; width:var(--w, 50%); border-radius:inherit; background:var(--ls-gradient); animation:sh-bar-in 1s var(--ls-ease) backwards; }
 .mock-row:nth-child(2) .mock-bar{ animation-delay:.15s; } .mock-row:nth-child(3) .mock-bar{ animation-delay:.3s; }
 @keyframes sh-bar-in{ from{ width:0;} }
-
-/* premium membership card */
-.member-card{
-  position:relative; width:min(100%, 340px); aspect-ratio:1.586; border-radius:18px; overflow:hidden;
-  background:
-    radial-gradient(130% 160% at 0% 0%, color-mix(in srgb, var(--ls-brand) 55%, var(--ls-ink)), transparent 70%),
-    radial-gradient(120% 150% at 100% 100%, color-mix(in srgb, var(--ls-gold) 40%, var(--ls-ink)), var(--ls-ink));
-  border:1px solid color-mix(in srgb, var(--ls-gold) 40%, transparent);
-  box-shadow:0 24px 60px color-mix(in srgb, var(--ls-brand) 22%, transparent);
-  transform:rotate(-3deg);
-  transition:transform .3s var(--ls-ease);
-}
-.panel--premium:hover .member-card{ transform:rotate(-1deg) translateY(-4px); }
-.member-card-brand{ position:absolute; top:20px; left:22px; font-weight:850; font-size:var(--ls-fs-4); letter-spacing:-.02em; color:#fff; }
-.member-card-tier{ position:absolute; bottom:18px; left:22px; font-size:var(--ls-fs-0); font-weight:800; letter-spacing:.3em; color:var(--ls-gold); }
-.member-card-chip{ position:absolute; top:52%; left:22px; width:38px; height:28px; border-radius:6px;
-  background:linear-gradient(135deg, var(--ls-gold), color-mix(in srgb, var(--ls-gold) 55%, #fff)); opacity:.9; }
-.member-card-shine{ position:absolute; inset:0;
-  background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,.14) 46%, transparent 60%);
-  background-size:280% 100%; animation:sh-shine 5.5s var(--ls-ease) infinite; }
-@keyframes sh-shine{ 0%{ background-position:120% 0;} 55%,100%{ background-position:-160% 0;} }
 
 /* ---- embeds (meet / live) --------------------------------------------------------- */
 .embed-bar{ display:flex; align-items:center; gap:var(--ls-3); margin-bottom:var(--ls-3); }
@@ -584,5 +550,4 @@ body.ls-overlay-open{ overflow:hidden; }
    layout-affecting entrance states visible even so */
 @media (prefers-reduced-motion: reduce){
   .mesh-blob{ animation:none; }
-  .member-card-shine{ display:none; }
 }

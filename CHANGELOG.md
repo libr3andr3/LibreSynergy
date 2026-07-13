@@ -4,6 +4,22 @@ All notable changes to LibreSynergy are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] — 2026-07-13
+
+Community is free — premium tier removed.
+
+- The member-facing premium tier is gone: the premium checkout is removed
+  from the payments bridge, and membership-sync no longer gates rooms or
+  courses — everything inside a community is free for its members.
+- All member-facing upsells removed: the app shell's Premium view, nav
+  entries, and "Go Premium" quick action (all languages), and the landing
+  page's Premium card and links (`SW_VERSION` bumped to 1.3.0).
+- `scaffold-matrix.sh` no longer creates the premium space/lounge;
+  `docs/solana-usdc.md` (member USDC checkout) is deleted.
+- Monetization moves to the operator level: people who deploy the stack pay
+  for hosting. BTCPay/Monero stay in the stack as operator payment and
+  donation infrastructure.
+
 ## [1.3.0] — 2026-07-07
 
 Bringup, self-bootstrapped — and private money.

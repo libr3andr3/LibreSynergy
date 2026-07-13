@@ -18,8 +18,8 @@ mesh its own members run — without ever asking permission from a platform.
   ├────────────────────────────────────────────────────────────────────┤
   │  MIDDLE — engagement                                                 │
   │  Joins the community: federated chat (Matrix), classroom, webinars.  │
-  │  Buys premium — card (Stripe) or crypto (BTCPay: BTC + Monero).      │
-  │  Both settle to the SAME Authentik entitlement group.               │
+  │  All of it free for members. Supporters can donate to the operator   │
+  │  by card (Stripe) or crypto (BTCPay: BTC + Monero).                  │
   ├────────────────────────────────────────────────────────────────────┤
   │  BOTTOM — P2P mesh (end of funnel, decentralized)                    │
   │  True members install the lightweight member client. It carries the    │
@@ -133,16 +133,16 @@ production moves signing in-process (libsodium/PyNaCl) for a ~100–300× drop.
 Even at the un-optimized 11 ms, verifying one segment of a multi-second stream
 is <0.3% of real time; at the raw 135 µs it is 0.003%.
 
-**Encryption (premium/paid content — confidentiality).** AES-256-GCM runs at
+**Encryption (optional — confidentiality).** AES-256-GCM runs at
 **~3 GB/s** on this box, so a 406 KB segment encrypts/decrypts in **~0.13 ms**
 and a full 2.5 Mbps stream is real-time-encrypted using ~0.01% of one core.
 Byte overhead is **28 B/segment** (12 B IV + 16 B GCM tag) = 0.007%.
 
 **Bottom line.** Crypto is never the bottleneck: verify (7,400/s) and AES
 (3 GB/s) are 1,000–2,000× faster than the demo's paced-UDP transport
-(1.5 MB/s). Public segments are signed only; premium segments are signed **and**
-encrypted, with the AES key released to a viewer only after the Stripe/BTCPay
-entitlement check — sovereignty and paid access from the same primitive.
+(1.5 MB/s). Public segments are signed only; confidential segments can be
+signed **and** encrypted — sovereignty and confidentiality from the same
+primitive.
 
 ## What's next
 - Combine the two proven halves: sign an OwnCast segment → serve it over the

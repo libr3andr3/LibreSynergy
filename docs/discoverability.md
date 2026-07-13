@@ -84,7 +84,7 @@ find "${LS_WWW_DIR}" -name '*.template.*' | while read -r t; do
       -e "s|__LS_BASE_DOMAIN__|${LS_BASE_DOMAIN}|g" \
       -e "s|__LS_APP__|${LS_APP}|g"   -e "s|__LS_CHAT__|${LS_CHAT}|g" \
       -e "s|__LS_LEARN__|${LS_LEARN}|g" -e "s|__LS_MEET__|${LS_MEET}|g" \
-      -e "s|__LS_LIVE__|${LS_LIVE}|g" -e "s|__LS_PREMIUM__|${LS_PREMIUM}|g" \
+      -e "s|__LS_LIVE__|${LS_LIVE}|g" \
       -e "s|__LS_AUTH__|${LS_AUTH}|g" \
       "$t" > "$out"
   say "rendered ${out#${LS_WWW_DIR}/}"
@@ -109,9 +109,8 @@ curl -sI https://$D/robots.template.txt           # → 404 (sources hidden)
 DNS is the one thing this repo can't do for you. Every hub/sub-app host needs
 an `A` record pointing at the **relay's public IP** (not the node):
 
-`@` (root), `app`, `auth`, `chat`, `matrix`, `learn`, `meet`, `live`,
-`premium` — plus any optional profiles you run: `btcpay`, `admin`, `tracker`,
-`reels`.
+`@` (root), `app`, `auth`, `chat`, `matrix`, `learn`, `meet`, `live` — plus
+any optional profiles you run: `btcpay`, `admin`, `tracker`, `reels`.
 
 - On Cloudflare, `scripts/cf-dns-sync.sh` creates/updates these from
   `libresynergy.env` idempotently.

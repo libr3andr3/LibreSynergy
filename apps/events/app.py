@@ -74,7 +74,7 @@ def public_events():
         live = e["start"] <= now <= end
         out.append({"id": e["id"], "title": e["title"], "desc": e.get("desc", ""),
                     "start": e["start"], "duration_min": e.get("duration_min", 60),
-                    "room": e.get("room", DEFAULT_ROOM), "premium": bool(e.get("premium")),
+                    "room": e.get("room", DEFAULT_ROOM),
                     "host": e.get("host", ""), "status": "live" if live else "upcoming"})
     out.sort(key=lambda x: (x["status"] != "live", x["start"]))
     return out
@@ -91,7 +91,7 @@ def feed():
     items = []
     for e in public_events():
         items.append({"type": "event", "id": e["id"], "title": e["title"], "body": e.get("desc", ""),
-                      "ts": e["start"], "status": e["status"], "premium": e["premium"], "room": e["room"]})
+                      "ts": e["start"], "status": e["status"], "room": e["room"]})
     for a in public_announcements():
         items.append({"type": "announcement", "id": a["id"], "title": a["title"],
                       "body": a["body"], "ts": a["ts"]})
@@ -176,7 +176,6 @@ background:linear-gradient(135deg,#7c6cff,#ffc15e);color:#0b0b12;font-size:15px}
 <label>Description</label><textarea id=desc rows=3 placeholder="What's it about?"></textarea>
 <label>Start (your local time)</label><input id=start type=datetime-local>
 <label>Duration (minutes)</label><input id=dur type=number value=60>
-<label><input type=checkbox id=prem style=width:auto> Premium only</label>
 <button onclick=go()>Schedule + announce</button><div id=m></div>
 <hr style="border-color:#262633;margin:28px 0">
 <h1>Post an announcement</h1>
@@ -196,7 +195,7 @@ var t=new URLSearchParams(location.search).get('token')||'';
 function go(){{
  var iso=new Date(document.getElementById('start').value).toISOString();
  fetch('/api/events',{{method:'POST',headers:{{'Content-Type':'application/json','Authorization':'Bearer '+t}},
-  body:JSON.stringify({{title:title.value,desc:desc.value,start:iso,duration_min:+dur.value,premium:prem.checked}})}})
+  body:JSON.stringify({{title:title.value,desc:desc.value,start:iso,duration_min:+dur.value}})}})
  .then(r=>r.json()).then(d=>{{m.textContent=d.ok?'✅ Scheduled — announced in chat.':'⚠️ '+(d.error||'failed');}})
  .catch(e=>m.textContent='⚠️ '+e);
 }}
@@ -266,7 +265,7 @@ class H(BaseHTTPRequestHandler):
         ev = {"id": "ev" + str(int(time.time())) + str(os.getpid() % 1000),
               "title": str(data["title"])[:120], "desc": str(data.get("desc", ""))[:1000],
               "start": start, "duration_min": int(data.get("duration_min", 60)),
-              "room": str(data.get("room", DEFAULT_ROOM))[:60], "premium": bool(data.get("premium")),
+              "room": str(data.get("room", DEFAULT_ROOM))[:60],
               "host": str(data.get("host", ""))[:60], "announced": False, "reminded": False}
         with _lock:
             d = load(); d.setdefault("events", []).append(ev); save(d)

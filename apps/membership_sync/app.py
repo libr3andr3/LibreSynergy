@@ -1,41 +1,25 @@
 #!/usr/bin/env python3
 """
-membership-sync — keeps Matrix premium rooms in sync with the Authentik `premium` group.
+membership-sync — community welcome bot.
 
-Source of truth: the Authentik `premium` group. Every user in it is force-joined to the
-premium Matrix rooms; everyone else (except the bot/safelist) is kicked. Runs a periodic
-reconcile loop AND exposes POST /reconcile so the payments bridge can trigger an instant sync.
+Membership is free; there are no gated rooms or paid courses to reconcile.
+What remains is hospitality: every brand-new Matrix account gets one welcome
+DM from the community bot pointing at the app. Runs a periodic loop AND
+exposes POST /reconcile for an instant pass.
 
 Pure stdlib (no pip deps). Talks to:
-  - Authentik API  (AUTHENTIK_URL + AUTHENTIK_TOKEN)  -> who is premium
-  - Synapse admin  (MATRIX_HS_URL + MATRIX_BOT_TOKEN)  -> invite/join/kick
+  - Synapse admin  (MATRIX_HS_URL + MATRIX_BOT_TOKEN)  -> list users, send DMs
 """
 import json, os, threading, time, urllib.request, urllib.error, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-AUTHENTIK_URL = os.environ["AUTHENTIK_URL"].rstrip("/")
-AUTHENTIK_TOKEN = os.environ["AUTHENTIK_TOKEN"]
 MATRIX_HS_URL = os.environ["MATRIX_HS_URL"].rstrip("/")
 MATRIX_BOT_TOKEN = os.environ["MATRIX_BOT_TOKEN"]
 SERVER_NAME = os.environ["MATRIX_SERVER_NAME"]  # e.g. matrix.example.com
-PREMIUM_GROUP = os.environ.get("PREMIUM_GROUP", "premium")
-SPACES_FILE = os.environ.get("SPACES_FILE", "/config/spaces.json")
 LISTEN_HOST = os.environ.get("LISTEN_HOST", "127.0.0.1")
 LISTEN_PORT = int(os.environ.get("LISTEN_PORT", "9101"))
 INTERVAL = int(os.environ.get("RECONCILE_INTERVAL", "60"))
 BOT_USER = os.environ.get("MATRIX_BOT_USER", f"@community-bot:{SERVER_NAME}")
-# never kick these from premium rooms
-SAFELIST = {BOT_USER} | {u.strip() for u in os.environ.get("SAFELIST", "").split(",") if u.strip()}
-
-# --- Frappe LMS (premium course enrollment gating) ---
-FRAPPE_URL = os.environ.get("FRAPPE_URL", "http://127.0.0.1:8100").rstrip("/")
-FRAPPE_API_KEY = os.environ.get("FRAPPE_API_KEY", "")
-FRAPPE_API_SECRET = os.environ.get("FRAPPE_API_SECRET", "")
-FRAPPE_HOST = os.environ.get("FRAPPE_HOST", "")  # e.g. learn.example.com
-FRAPPE_AUTH = f"token {FRAPPE_API_KEY}:{FRAPPE_API_SECRET}" if FRAPPE_API_KEY else None
-# never unenroll these from paid courses (instructors/admins)
-LMS_SAFELIST = {e.strip().lower() for e in
-                os.environ.get("LMS_SAFELIST", "").split(",") if e.strip()}
 
 # --- Welcome bot (DMs new members on arrival) ---
 WELCOME_ENABLED = os.environ.get("WELCOME_ENABLED", "1") == "1"
@@ -44,8 +28,7 @@ APP_URL = os.environ.get("APP_URL", "")
 BRAND_NAME = os.environ.get("BRAND_NAME", "the community")
 
 _lock = threading.Lock()
-_last = {"time": 0, "premium": 0, "added": 0, "kicked": 0,
-         "lms_granted": 0, "lms_revoked": 0, "welcomed": 0, "error": None}
+_last = {"time": 0, "welcomed": 0, "error": None}
 
 
 def log(*a):
@@ -70,149 +53,6 @@ def _req(method, url, token, body=None, tries=0):
             time.sleep(wait + 0.3)
             return _req(method, url, token, body, tries + 1)
         return e.code, {"error": raw}
-
-
-# ---------- Authentik ----------
-def premium_mxids():
-    """Return set of @localpart:server for every active user in the premium group."""
-    mxids = set()
-    url = (f"{AUTHENTIK_URL}/api/v3/core/users/"
-           f"?groups_by_name={urllib.parse.quote(PREMIUM_GROUP)}&page_size=100")
-    while url:
-        status, data = _req("GET", url, AUTHENTIK_TOKEN)
-        if status != 200:
-            raise RuntimeError(f"authentik users list -> {status}: {data}")
-        for u in data.get("results", []):
-            if not u.get("is_active"):
-                continue
-            localpart = (u.get("username") or "").strip().lower()
-            if localpart:
-                mxids.add(f"@{localpart}:{SERVER_NAME}")
-        nxt = data.get("pagination", {}).get("next")
-        # authentik 'next' is a page number, not a URL
-        if nxt:
-            base = url.split("&page=")[0]
-            url = f"{base}&page={nxt}"
-        else:
-            url = None
-    return mxids
-
-
-# ---------- Matrix ----------
-def room_members(room_id):
-    rid = urllib.parse.quote(room_id)
-    status, data = _req("GET", f"{MATRIX_HS_URL}/_synapse/admin/v1/rooms/{rid}/members", MATRIX_BOT_TOKEN)
-    if status != 200:
-        raise RuntimeError(f"room members {room_id} -> {status}: {data}")
-    return set(data.get("members", []))
-
-
-def user_exists(mxid):
-    uid = urllib.parse.quote(mxid)
-    status, _ = _req("GET", f"{MATRIX_HS_URL}/_synapse/admin/v2/users/{uid}", MATRIX_BOT_TOKEN)
-    return status == 200
-
-
-def force_join(room_id, mxid):
-    rid = urllib.parse.quote(room_id)
-    status, data = _req("POST", f"{MATRIX_HS_URL}/_synapse/admin/v1/join/{rid}",
-                        MATRIX_BOT_TOKEN, {"user_id": mxid})
-    return status == 200, data
-
-
-def kick(room_id, mxid, reason="premium membership ended"):
-    rid = urllib.parse.quote(room_id)
-    status, data = _req("POST", f"{MATRIX_HS_URL}/_matrix/client/v3/rooms/{rid}/kick",
-                        MATRIX_BOT_TOKEN, {"user_id": mxid, "reason": reason})
-    return status == 200, data
-
-
-def load_premium_rooms():
-    with open(SPACES_FILE) as f:
-        spaces = json.load(f)
-    rooms = list(spaces.get("premium_rooms", []))
-    if spaces.get("premium_space"):
-        rooms.append(spaces["premium_space"])  # also gate the space itself
-    return rooms
-
-
-# ---------- Frappe LMS ----------
-def premium_emails():
-    """Emails of every active user in the premium group (for LMS enrollment)."""
-    emails = set()
-    url = (f"{AUTHENTIK_URL}/api/v3/core/users/"
-           f"?groups_by_name={urllib.parse.quote(PREMIUM_GROUP)}&page_size=100")
-    while url:
-        status, data = _req("GET", url, AUTHENTIK_TOKEN)
-        if status != 200:
-            break
-        for u in data.get("results", []):
-            if u.get("is_active") and u.get("email"):
-                emails.add(u["email"].strip().lower())
-        nxt = data.get("pagination", {}).get("next")
-        url = f"{url.split('&page=')[0]}&page={nxt}" if nxt else None
-    return emails
-
-
-def _frappe(method, path, body=None, params=None):
-    url = f"{FRAPPE_URL}{path}"
-    if params:
-        url += "?" + urllib.parse.urlencode(params)
-    data = json.dumps(body).encode() if body is not None else None
-    headers = {"Authorization": FRAPPE_AUTH, "Host": FRAPPE_HOST, "Content-Type": "application/json"}
-    req = urllib.request.Request(url, data=data, method=method, headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            raw = r.read()
-            return r.status, (json.loads(raw) if raw else {})
-    except urllib.error.HTTPError as e:
-        return e.code, {"error": e.read().decode()[:200]}
-    except Exception as e:
-        return 0, {"error": str(e)}
-
-
-def lms_paid_courses():
-    st, d = _frappe("GET", "/api/resource/LMS%20Course", params={
-        "filters": json.dumps([["paid_course", "=", 1], ["published", "=", 1]]),
-        "fields": json.dumps(["name"]), "limit_page_length": "0"})
-    return [c["name"] for c in d.get("data", [])] if st == 200 else []
-
-
-def frappe_user_exists(email):
-    st, _ = _frappe("GET", f"/api/resource/User/{urllib.parse.quote(email)}")
-    return st == 200
-
-
-def lms_enrolled(course):
-    """Return {member_email: enrollment_name} for a course."""
-    st, d = _frappe("GET", "/api/resource/LMS%20Enrollment", params={
-        "filters": json.dumps([["course", "=", course]]),
-        "fields": json.dumps(["name", "member"]), "limit_page_length": "0"})
-    return {r["member"]: r["name"] for r in d.get("data", [])} if st == 200 else {}
-
-
-def lms_sync(premium):
-    """Enroll premium members in paid courses; unenroll those who lapsed."""
-    granted = revoked = 0
-    if not FRAPPE_AUTH:
-        return granted, revoked
-    for course in lms_paid_courses():
-        enrolled = lms_enrolled(course)
-        for email in premium - set(enrolled):
-            if not frappe_user_exists(email):
-                continue  # no LMS account yet; enrolls on next reconcile after first login
-            st, d = _frappe("POST", "/api/resource/LMS%20Enrollment", {"course": course, "member": email})
-            if st in (200, 201):
-                granted += 1; log("LMS GRANT", email, "->", course)
-            else:
-                log("ERR lms enroll", email, course, d)
-        for email, ename in enrolled.items():
-            if email.lower() in premium or email.lower() in LMS_SAFELIST:
-                continue
-            st, _ = _frappe("DELETE", f"/api/resource/LMS%20Enrollment/{urllib.parse.quote(ename)}")
-            if st in (200, 202):
-                revoked += 1; log("LMS REVOKE", email, "<-", course)
-    return granted, revoked
 
 
 # ---------- Welcome bot ----------
@@ -281,11 +121,10 @@ def welcome_new_members():
         html_body = (f"<h3>👋 Welcome to {BRAND_NAME}, {name}!</h3>So glad you're here. Here's how to dive in:<br><br>"
                      f"💬 <b>Say hi</b> in the community rooms<br>"
                      f"🎓 <b>Browse courses</b> in the Classroom<br>"
-                     f"🎥 <b>Join live webinars</b> right in the app<br>"
-                     f"💎 <b>Go Premium</b> ($20/mo) to unlock premium rooms, paid courses & member webinars<br><br>"
-                     f'Open the app → <a href="{APP_URL}">{APP_URL}</a>')
-        plain = (f"Welcome to {BRAND_NAME}, {name}! Say hi in the rooms, browse courses, join live webinars, "
-                 f"and go Premium to unlock everything. Open the app: {APP_URL}")
+                     f"🎥 <b>Join live webinars</b> right in the app<br><br>"
+                     f'Everything here is free for members. Open the app → <a href="{APP_URL}">{APP_URL}</a>')
+        plain = (f"Welcome to {BRAND_NAME}, {name}! Say hi in the rooms, browse courses, join live webinars. "
+                 f"Everything here is free for members. Open the app: {APP_URL}")
         if dm_send(mxid, html_body, plain):
             welcomed.add(mxid); n += 1; log("WELCOMED", mxid)
     if n:
@@ -296,40 +135,10 @@ def welcome_new_members():
 # ---------- reconcile ----------
 def reconcile():
     with _lock:
-        added = kicked = 0
         try:
-            premium = premium_mxids()
-            rooms = load_premium_rooms()
-            for room in rooms:
-                try:
-                    members = room_members(room)
-                except Exception as e:
-                    log("ERR members", room, e); continue
-                # grant
-                for mxid in premium - members:
-                    if not user_exists(mxid):
-                        log("skip (no matrix acct yet):", mxid); continue
-                    ok, data = force_join(room, mxid)
-                    if ok:
-                        added += 1; log("GRANT", mxid, "->", room)
-                    else:
-                        log("ERR grant", mxid, room, data)
-                # revoke
-                for mxid in members - premium - SAFELIST:
-                    ok, data = kick(room, mxid)
-                    if ok:
-                        kicked += 1; log("REVOKE", mxid, "<-", room)
-                    else:
-                        log("ERR revoke", mxid, room, data)
-            # premium course enrollment gating (mirrors the room gating above)
-            lms_granted, lms_revoked = lms_sync({e.lower() for e in premium_emails()})
-            # DM any brand-new members a welcome
             welcomed = welcome_new_members()
-            _last.update(time=int(time.time()), premium=len(premium),
-                         added=added, kicked=kicked, lms_granted=lms_granted,
-                         lms_revoked=lms_revoked, welcomed=welcomed, error=None)
-            log(f"reconcile done: premium={len(premium)} added={added} kicked={kicked} "
-                f"lms_granted={lms_granted} lms_revoked={lms_revoked} welcomed={welcomed}")
+            _last.update(time=int(time.time()), welcomed=welcomed, error=None)
+            log(f"reconcile done: welcomed={welcomed}")
         except Exception as e:
             _last.update(time=int(time.time()), error=str(e))
             log("RECONCILE ERROR:", e)
@@ -366,7 +175,7 @@ def loop():
 
 
 if __name__ == "__main__":
-    log(f"membership-sync starting; premium group='{PREMIUM_GROUP}' interval={INTERVAL}s "
+    log(f"membership-sync (welcome bot) starting; interval={INTERVAL}s "
         f"listen={LISTEN_HOST}:{LISTEN_PORT}")
     threading.Thread(target=loop, daemon=True).start()
     ThreadingHTTPServer((LISTEN_HOST, LISTEN_PORT), Handler).serve_forever()

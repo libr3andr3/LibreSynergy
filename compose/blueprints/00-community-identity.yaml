@@ -3,7 +3,7 @@
 #  authentik on boot; safe to re-apply, it converges to this exact state).
 #
 #  What it creates:
-#    • groups: members (everyone) + premium (paying supporters)
+#    • groups: members (everyone)
 #    • community-signup flow  — username + email → account → email code → in.
 #      THE FIRST PERSON TO REGISTER BECOMES THE ADMIN (superuser). Every
 #      later registrant is an ordinary member. No bootstrap passwords, no
@@ -29,13 +29,6 @@ entries:
   attrs:
     is_superuser: false
   state: present
-- model: authentik_core.group
-  identifiers:
-    name: premium
-  attrs:
-    is_superuser: false
-  state: present
-
 # ---- signup flow -----------------------------------------------------------
 - model: authentik_flows.flow
   identifiers:

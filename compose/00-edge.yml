@@ -25,7 +25,6 @@ services:
       LS_MEET: ${LS_MEET:-meet.${LS_BASE_DOMAIN}}
       LS_APP: ${LS_APP:-app.${LS_BASE_DOMAIN}}
       LS_LIVE: ${LS_LIVE:-live.${LS_BASE_DOMAIN}}
-      LS_PREMIUM: ${LS_PREMIUM:-premium.${LS_BASE_DOMAIN}}
       LS_PAY: ${LS_PAY:-btcpay.${LS_BASE_DOMAIN}}
       LS_ADMIN: ${LS_ADMIN:-admin.${LS_BASE_DOMAIN}}
       LS_TRACKER: ${LS_TRACKER:-tracker.${LS_BASE_DOMAIN}}

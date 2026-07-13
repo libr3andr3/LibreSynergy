@@ -1,44 +1,34 @@
-# compose/50-payments.yml — LibreSynergy optional payments stack (profile: "payments")
+# compose/50-payments.yml — LibreSynergy community sidecars (profile: "payments")
 #
-# Three pure-stdlib Python sidecars, all network_mode: host, reverse-proxied by Caddy:
-#   payments-bridge  -> serves https://${LS_PREMIUM} (Stripe + BTCPay checkout/webhooks)
-#   membership-sync  -> 127.0.0.1:9101 (reconciles Authentik groups -> Matrix spaces / Frappe)
-#   events           -> event schedule + Matrix announcer (public feed on 127.0.0.1:9102)
+# Membership is FREE — operators monetize the deployment, never the members.
+# Three pure-stdlib Python sidecars, all network_mode: host, fronted by Caddy:
+#   payments-bridge  -> 127.0.0.1:9092  free signup: POST /join on the landing
+#   membership-sync  -> 127.0.0.1:9101  welcome bot (DMs new members once)
+#   events           -> 127.0.0.1:9102  event schedule + Matrix announcer
 #
 # Enable with:  docker compose --profile payments up -d
 # The app sources ship with the repo at ./apps/<name>/app.py — pure stdlib,
-# short, and written to be read before you trust them with your revenue.
-#
-# Before first start, also copy secrets/spaces.json.example to
-# ${LS_SECRETS_DIR}/spaces.json — if the file is missing, Docker will create a
-# directory in its place and membership-sync will fail to read its group map.
+# short, and written to be read before you trust them with your community.
 
 services:
   payments-bridge:
     image: python:3.12-slim
     restart: unless-stopped
-    network_mode: host            # binds loopback only; Caddy fronts ${LS_PREMIUM}
+    network_mode: host            # binds loopback only; Caddy fronts /join
     profiles: ["payments"]
     working_dir: /app
-    # segno (pure-python QR) is optional — installed for the Solana USDC pay QR;
-    # the `|| true` keeps the bridge booting even if the install can't run.
-    command: ["sh", "-c", "pip install --quiet --no-cache-dir --disable-pip-version-check segno 2>/dev/null || true; exec python -u app.py"]
+    command: ["python", "-u", "app.py"]
     env_file:
       - ${LS_SECRETS_DIR}/authentik.env   # Authentik API token (example ships with the auth unit)
       - ${LS_SECRETS_DIR}/bridge.env
-      - ${LS_SECRETS_DIR}/stripe.env
-      - ${LS_SECRETS_DIR}/btcpay.env
-      - ${LS_SECRETS_DIR}/solana.env      # USDC-on-Solana (empty by default = feature off)
     environment:
       - TZ=${LS_TZ:-UTC}
       - LS_DEFAULT_LANG=${LS_DEFAULT_LANG:-en}
-      - PUBLIC_BASE_URL=https://${LS_PREMIUM:-premium.${LS_BASE_DOMAIN}}
+      - PUBLIC_BASE_URL=https://${LS_BASE_DOMAIN}
       - COMMUNITY_CHAT_URL=https://${LS_CHAT:-chat.${LS_BASE_DOMAIN}}
       - AUTHENTIK_PUBLIC_HOST=${LS_AUTH:-auth.${LS_BASE_DOMAIN}}
       - BRAND_NAME=${LS_BRAND_NAME:-Community}
       - BRAND_BASE_URL=https://${LS_BASE_DOMAIN}
-      - PREMIUM_PRICE_USD=${LS_PREMIUM_PRICE_USD:-20}
-      - PREMIUM_GROUP=${LS_PREMIUM_GROUP:-premium}
     volumes:
       - ../apps/payments_bridge/app.py:/app/app.py:ro
       - ../apps/i18n:/i18n:ro            # shared translation catalog (en/es/fr)
@@ -52,26 +42,20 @@ services:
     working_dir: /app
     command: ["python", "-u", "app.py"]
     env_file:
-      - ${LS_SECRETS_DIR}/authentik.env   # example ships with the auth unit
       - ${LS_SECRETS_DIR}/matrix.env      # example ships with the matrix unit
-      - ${LS_SECRETS_DIR}/frappe.env      # example ships with the learn unit
     environment:
       - TZ=${LS_TZ:-UTC}
       - LISTEN_HOST=127.0.0.1
       - LISTEN_PORT=9101
       - RECONCILE_INTERVAL=60
-      - SPACES_FILE=/config/spaces.json
       - WELCOME_ENABLED=1
       - WELCOME_STATE=/state/welcomed.json
       - APP_URL=https://${LS_APP:-app.${LS_BASE_DOMAIN}}
+      - BRAND_NAME=${LS_BRAND_NAME:-Community}
       - MATRIX_HS_URL=http://127.0.0.1:8008
       - MATRIX_SERVER_NAME=${LS_MATRIX:-matrix.${LS_BASE_DOMAIN}}
-      - FRAPPE_URL=http://127.0.0.1:8100
-      - FRAPPE_HOST=${LS_LEARN:-learn.${LS_BASE_DOMAIN}}
-      - PREMIUM_GROUP=${LS_PREMIUM_GROUP:-premium}
     volumes:
       - ../apps/membership_sync/app.py:/app/app.py:ro
-      - ${LS_SECRETS_DIR}/spaces.json:/config/spaces.json:ro   # group -> Matrix space map (operator-edited; see secrets/spaces.json.example)
       - ${LS_DATA_DIR}/membership_sync:/state
 
   events:

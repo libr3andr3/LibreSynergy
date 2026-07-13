@@ -183,7 +183,6 @@ Authentik / classroom / webinar rebrand runs within a minute.</div></div>
 <a href="https://live.__DOMAIN__/admin" target="_blank">OwnCast admin</a>
 <a href="https://btcpay.__DOMAIN__" target="_blank">BTCPay</a>
 <a href="https://learn.__DOMAIN__" target="_blank">Classroom</a>
-<a href="https://premium.__DOMAIN__" target="_blank">Upgrade page</a>
 <a href="https://__DOMAIN__" target="_blank">Landing</a>
 <a href="https://auth.__DOMAIN__/if/flow/community-signup/" target="_blank">Signup flow</a>
 </div></div>

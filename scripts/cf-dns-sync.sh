@@ -56,7 +56,7 @@ ensure_a(){ # ensure_a <fqdn>
 
 # The full host set: core + optional units. Harmless to create ahead of enabling
 # a unit — the relay just has no SNI entry until you run ls-route.
-for sub in "" www app auth chat matrix learn meet live premium btcpay rtmp admin tracker reels; do
+for sub in "" www app auth chat matrix learn meet live btcpay rtmp admin tracker reels; do
   fqdn="${sub:+$sub.}$DOMAIN"
   ensure_a "$fqdn"
 done

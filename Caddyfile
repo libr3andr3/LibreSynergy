@@ -129,13 +129,6 @@
     reverse_proxy 127.0.0.1:8600
 }
 
-# Checkout / account pages (payments bridge, profile: payments)
-{$LS_PREMIUM} {
-    bind {$LS_WG_IP:10.0.0.2}
-    import secure_headers
-    reverse_proxy 127.0.0.1:9092
-}
-
 # Self-hosted Bitcoin checkout (BTCPay Server, profile: btcpay)
 {$LS_PAY} {
     bind {$LS_WG_IP:10.0.0.2}

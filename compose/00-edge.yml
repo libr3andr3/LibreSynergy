@@ -11,6 +11,7 @@ name: ${LS_PROJECT_NAME:-libresynergy}
 services:
   caddy:
     image: caddy:2-alpine
+    profiles: ["edge"]   # node-local: yaya-caddy at ~/docker is the edge on this box
     network_mode: host
     restart: unless-stopped
     environment:

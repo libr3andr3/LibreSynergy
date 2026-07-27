@@ -97,6 +97,7 @@ say "www:  $WWW_DIR"
 write_if_changed(){
   local path="$1" tmp
   tmp="$(mktemp "${path}.tmp.XXXXXX")"
+  chmod 644 "$tmp" # rendered files are web-served; mktemp 0600 breaks unprivileged servers
   printf '%s' "$2" > "$tmp"
   if cmp -s "$tmp" "$path" 2>/dev/null; then rm -f "$tmp"; echo UNCHANGED
   else mv "$tmp" "$path"; echo CHANGED; fi

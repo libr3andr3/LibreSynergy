@@ -26,8 +26,11 @@ services:
       - DISABLE_HTTPS=1 # TLS terminates at the edge proxy
       - ENABLE_AUTH=1
       - ENABLE_GUESTS=1
-      - AUTH_TYPE=internal
+      - AUTH_TYPE=jwt
       - XMPP_SERVER=jitsi-prosody
+      - XMPP_BOSH_URL_BASE=http://jitsi-prosody:5280
+      - TOKEN_AUTH_URL=https://meet-auth.${LS_BASE_DOMAIN}/room/{room}
+      - COLIBRI_WEBSOCKET_REGEX=jitsi-jvb
       - XMPP_DOMAIN=meet.jitsi
       - XMPP_AUTH_DOMAIN=auth.meet.jitsi
       - XMPP_MUC_DOMAIN=muc.meet.jitsi
@@ -55,7 +58,7 @@ services:
     environment:
       - ENABLE_AUTH=1
       - ENABLE_GUESTS=1
-      - AUTH_TYPE=internal
+      - AUTH_TYPE=jwt
       - XMPP_DOMAIN=meet.jitsi
       - XMPP_AUTH_DOMAIN=auth.meet.jitsi
       - XMPP_MUC_DOMAIN=muc.meet.jitsi
@@ -79,7 +82,7 @@ services:
       - JVB_BREWERY_MUC=jvbbrewery
       - ENABLE_AUTH=1
       - ENABLE_GUESTS=1
-      - AUTH_TYPE=internal
+      - AUTH_TYPE=jwt
       - TZ=${LS_TZ:-UTC}
     depends_on: [ jitsi-prosody ]
     volumes:
@@ -98,6 +101,10 @@ services:
       - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
       - JVB_BREWERY_MUC=jvbbrewery
       - JVB_PORT=10000
+      - PUBLIC_URL=https://${LS_MEET}
+      - JVB_ADVERTISE_IPS=103.89.12.145
+      - ENABLE_COLIBRI_WEBSOCKET=1
+      - JVB_WS_SERVER_ID=jitsi-jvb
       # Non-Google default; override via LS_STUN_SERVERS (comma-separated host:port)
       - JVB_STUN_SERVERS=${LS_STUN_SERVERS:-meet-jit-si-turnrelay.jitsi.net:443}
       # If this node is behind NAT, uncomment and set the public IP(s) so
@@ -107,3 +114,19 @@ services:
     depends_on: [ jitsi-prosody ]
     volumes:
       - ${LS_DATA_DIR}/jitsi/jvb:/config
+
+  # OIDC → Jitsi-JWT adapter: "I am the host" bounces via Authentik and returns
+  # with a signed token; guests stay tokenless (ENABLE_GUESTS on the units above).
+  jitsi-openid:
+    image: ghcr.io/marcelcoding/jitsi-openid:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8210:3000"
+    env_file:
+      - "${LS_SECRETS_DIR}/jitsi-openid.env" # JITSI_SECRET (=JWT_APP_SECRET) + CLIENT_SECRET
+    environment:
+      - JITSI_URL=https://${LS_MEET}
+      - JITSI_SUB=jitsi
+      - BASE_URL=https://meet-auth.${LS_BASE_DOMAIN}
+      - ISSUER_URL=https://${LS_AUTH}/application/o/jitsi/
+      - CLIENT_ID=jitsi
